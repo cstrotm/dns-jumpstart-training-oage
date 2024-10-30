@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-30 Wed 17:57 -->
+<!-- 2024-10-30 Wed 17:58 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -109,6 +109,7 @@ $(function() {
 <li><a href="#sec-12-2">12.2. Query Logging</a></li>
 <li><a href="#sec-12-3">12.3. Packet Capture (Passive Replication)</a></li>
 <li><a href="#sec-12-4">12.4. DNSTAP</a></li>
+<li><a href="#sec-12-5">12.5. CHAOS: An Information Source (Built-in server information zones)</a></li>
 </ul>
 </li>
 </ul>
@@ -4044,12 +4045,180 @@ dnstap-identity "dnsrNN-server";
 </div>
 </div>
 </div>
+
+<div id="outline-container-sec-12-5" class="outline-3">
+<h3 id="sec-12-5"><span class="section-number-3">12.5</span> CHAOS: An Information Source (Built-in server information zones)</h3>
+<div class="outline-text-3" id="text-12-5">
+</div><div id="outline-container-sec-12-5-1" class="outline-4">
+<h4 id="sec-12-5-1"><span class="section-number-4">12.5.1</span> CHAOS &amp; HESIOD Classes</h4>
+<div class="outline-text-4" id="text-12-5-1">
+<ul class="org-ul">
+<li>The rarely used DNS network classes <i>Chaos</i> (<code>CH</code>) and <i>Hesiod</i> (<code>HS</code>) were
+developed at MIT and are not widely used.
+</li>
+<li>The ISC has repurposed Chaos providing TXT RRs with BIND server
+information.
+<ul class="org-ul">
+<li><code>version.bind</code>
+</li>
+<li><code>hostname.bind</code>
+</li>
+<li><code>id.server</code>
+</li>
+<li><code>authors.bind</code>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-12-5-2" class="outline-4">
+<h4 id="sec-12-5-2"><span class="section-number-4">12.5.2</span> version.bind</h4>
+<div class="outline-text-4" id="text-12-5-2">
+<ul class="org-ul">
+<li>The version can be set to any string with the <code>version string;</code>
+stanza in <code>options {};</code>
+</li>
+</ul>
+<pre class="example">
+$ dig +noall +answer ch TXT version.bind  @::1
+version.bind.		0	CH	TXT 	"9.13.3"
+$ dig +noall +answer @ams.sns-pb.isc.org. ch TXT version.bind
+version.bind.		0	CH	TXT	"9.9.7-P2"
+$ dig +noall +answer chaos TXT version.bind @ns4.tidelock.de
+version.bind.		0	CH	TXT 	""
+
+$ dig +noall +answer chaos TXT version.bind @i.root-servers.net
+version.bind.		0	CH	TXT	"contact info@netnod.se"
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-12-5-3" class="outline-4">
+<h4 id="sec-12-5-3"><span class="section-number-4">12.5.3</span> hostname.bind</h4>
+<div class="outline-text-4" id="text-12-5-3">
+<ul class="org-ul">
+<li><code>hostname.bind</code> defaults to the string the *NIX command <code>uname -n</code>
+returns.
+<ul class="org-ul">
+<li>Set it with <code>hostname string;</code> in <code>options {};</code>.
+</li>
+<li>It can be used to identify which of a group of anycasts servers
+is answering a query.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+$ dig +noall +answer chaos TXT hostname.bind @g.root-servers.net
+hostname.bind.		0	CH	TXT	  "g.root-servers-pac2-1.net"
+
+$ dig +noall +answer ch TXT hostname.bind @::1
+hostname.bind.		0	CH	TXT	 "student2"
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-12-5-4" class="outline-4">
+<h4 id="sec-12-5-4"><span class="section-number-4">12.5.4</span> id.server</h4>
+<div class="outline-text-4" id="text-12-5-4">
+<ul class="org-ul">
+<li>By default, <code>id.server</code> is not a RR.
+<ul class="org-ul">
+<li>Set it with <code>server-id string;</code> in <code>options {};</code>.Default:
+<code>server-id none;</code>
+</li>
+<li>It can be used to identify which of a group of anycasts servers
+is answering a query.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+$ dig +noall +answer chaos TXT id.server @k.root-servers.net
+id.server.		0	CH	TXT	"ns1.ch-zrh.k.ripe.net"
+
+$ dig +noall +answer chaos TXT id.server @f.root-servers.net
+id.server.		0	CH	TXT	"cdg1b.f.root-servers.org"
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-12-5-5" class="outline-4">
+<h4 id="sec-12-5-5"><span class="section-number-4">12.5.5</span> Turning off answers from the CHAOS class</h4>
+<div class="outline-text-4" id="text-12-5-5">
+<ul class="org-ul">
+<li>by default, BIND 9 answers queries to internal information in the
+CHAOS class (a network class not used in production anymore and
+repurposed for internet DNS server data)
+</li>
+<li>the DNS queries in the chaos class are
+<ul class="org-ul">
+<li><code>dig @&lt;server&gt; ch TXT version.bind</code> - ask for the BIND 9 server software
+version
+</li>
+<li><code>dig @&lt;server&gt; ch TXT authors.bind</code> - ask for the list of BIND 9
+developers
+</li>
+<li><code>dig @&lt;server&gt; ch TXT hostname.bind</code> - ask for the BIND 9 server
+hostname
+</li>
+<li><code>dig @&lt;server&gt; query +nsid</code> or <code>dig @&lt;server&gt; ch TXT server.id</code> -
+ask for the server's ID (see <a href="https://tools.ietf.org/html/rfc4892">RFC 4892 Requirements for a
+Mechanism Identifying a Name Server Instance</a> and <a href="https://tools.ietf.org/html/rfc5001">DNS Name Server
+Identifier (NSID) Option</a>
+</li>
+</ul>
+</li>
+<li>example query with NSID
+</li>
+</ul>
+<pre class="example">
+$ dig +nsid google.com
+
+; &lt;&lt;&gt;&gt; DiG 9.11.4-P2-RedHat-9.11.4-26.P2.el8 &lt;&lt;&gt;&gt; +nsid google.com
+;; global options: +cmd
+;; Got answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 1785
+;; flags: qr rd ra; QUERY: 1, ANSWER: 6, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 512
+; NSID: 70 72 6f 64 2d 72 64 6e 73 72 65 73 6f 6c 76 65 72 30 32 2e 61 6d 73 33 2e 69 6e 74 65 72 6e 61 6c 2e 64 69 67 69 74 61 6c 6f 63 65 61 6e 2e 63 6f 6d ("prod-rdnsresolver02.ams3.internal.digitalocean.com")
+;; QUESTION SECTION:
+;google.com.                    IN      A
+
+;; ANSWER SECTION:
+google.com.             44      IN      A       108.177.126.100
+google.com.             44      IN      A       108.177.126.113
+google.com.             44      IN      A       108.177.126.139
+google.com.             44      IN      A       108.177.126.102
+google.com.             44      IN      A       108.177.126.101
+google.com.             44      IN      A       108.177.126.138
+
+;; Query time: 1 msec
+;; SERVER: 67.207.67.3#53(67.207.67.3)
+;; WHEN: Tue May 26 05:41:20 UTC 2020
+;; MSG SIZE  rcvd: 189
+</pre>
+<ul class="org-ul">
+<li>turning off these information sources in BIND 9
+</li>
+</ul>
+<pre class="example">
+options {
+   [...]
+   server-id none;
+   version none;
+   hostname none;
+};
+</pre>
+</div>
+</div>
+</div>
 </div>
 </div></div></div>
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-30 Wed 17:57</p>
+<p class="date">Created: 2024-10-30 Wed 17:58</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
