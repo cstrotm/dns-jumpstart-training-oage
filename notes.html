@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-30 Wed 19:09 -->
+<!-- 2024-10-30 Wed 19:52 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -142,6 +142,24 @@ $(function() {
 <li><a href="#sec-14-2">14.2. TSIG to Secure Zone Transfer</a></li>
 <li><a href="#sec-14-3">14.3. TSIGs for Securing All Communication Between DNS Servers</a></li>
 <li><a href="#sec-14-4">14.4. Exercise</a></li>
+</ul>
+</li>
+<li><a href="#sec-15">15. Dynamic Updates (Plus NOTIFY &amp; IXFR)</a>
+<ul class="nav">
+<li><a href="#sec-15-1">15.1. Dynamic update security with ACLs and TSIG keys</a></li>
+<li><a href="#sec-15-2">15.2. update-policy</a></li>
+<li><a href="#sec-15-3">15.3. DNS dynamic update forwarding</a></li>
+<li><a href="#sec-15-4">15.4. Dynamic Zones: SOA Serial</a></li>
+<li><a href="#sec-15-5">15.5. Notes on Dynamic Updates</a></li>
+<li><a href="#sec-15-6">15.6. The Journal File</a></li>
+<li><a href="#sec-15-7">15.7. More Notes on Dynamic Updates</a></li>
+<li><a href="#sec-15-8">15.8. DDNS Zone File Editing</a></li>
+<li><a href="#sec-15-9">15.9. Using nsupdate</a></li>
+<li><a href="#sec-15-10">15.10. ddns-confgen</a></li>
+<li><a href="#sec-15-11">15.11. DNS Notify</a></li>
+<li><a href="#sec-15-12">15.12. Incremental Zone Transfer (IXFR)</a></li>
+<li><a href="#sec-15-13">15.13. IXFR example</a></li>
+<li><a href="#sec-15-14">15.14. Exercise:</a></li>
 </ul>
 </li>
 </ul>
@@ -5009,11 +5027,885 @@ should be denied
 </div>
 </div>
 </div>
+
+<div id="outline-container-sec-15" class="outline-2">
+<h2 id="sec-15"><span class="section-number-2">15</span> Dynamic Updates (Plus NOTIFY &amp; IXFR)</h2>
+<div class="outline-text-2" id="text-15">
+<ul class="org-ul">
+<li>DNSIND is shorthand for a group of extensions to the original DNS protocol.
+<ul class="org-ul">
+<li><code>I</code> is for Incremental Zone Transfer
+</li>
+<li><code>N</code> is for NOTIFY
+</li>
+<li><code>D</code> is for Dynamic Update
+</li>
+</ul>
+</li>
+<li>Together, the DNSIND extensions allow DNS to handle dynamic networks.
+</li>
+
+<li>A dynamic update allows a node to change the contents of a zone.
+<ul class="org-ul">
+<li>DHCP servers, for example, can add <code>A</code>, <code>AAAA</code> and <code>PTR</code> records to reflect the leases they give out.
+</li>
+</ul>
+</li>
+<li>A dynamic update can:
+<ul class="org-ul">
+<li>Add resource records to a zone
+</li>
+<li>Delete records from a zone:
+<ul class="org-ul">
+<li>One record
+</li>
+<li>All records of a certain type with one domain name (an RRSet)
+</li>
+<li>All records with one domain name
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>A server can be configured to only accept updates from senders with the proper PSK (Pre-Shared TSIG Key).
+</li>
+<li>A sender can define update prerequisites, such as the existence/non-existence of:
+<ul class="org-ul">
+<li>A particular record
+</li>
+<li>Resource Records with a specific domain name and type
+</li>
+</ul>
+</li>
+
+<li>A sender first tries to transmit an update to a zone's primary master.
+<ul class="org-ul">
+<li>Most compare the SOA's <code>mname</code> field to the NS RRSet.
+</li>
+<li>If the <code>mname</code> matches an NS RR, the update is sent there.
+</li>
+<li>Otherwise the update is sent to one of the domain names in the NS
+RRSet (from the sender's perspective, a secondary).
+
+<p>
+<img id="dynamic-update" class="img-responsive" src="img/dynamic-update-00.png"></ p><input type="button" onclick="NextPage('dynamic-update','8')" value=">" /><input type="button" onclick="ResetSlides('dynamic-update')" value="O" /><input type="button" onclick="PrevPage('dynamic-update')" value="<" />
+</p>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+
+<div id="outline-container-sec-15-1" class="outline-3">
+<h3 id="sec-15-1"><span class="section-number-3">15.1</span> Dynamic update security with ACLs and TSIG keys</h3>
+<div class="outline-text-3" id="text-15-1">
+<ul class="org-ul">
+<li>On a primary authoritative server, <code>allow-update {};</code> enables DDNS.
+<ul class="org-ul">
+<li>It also limits the updates to specifics keys or addresses.
+</li>
+<li>Using a symmetric key (TSIG) is more secure, but IP addresses can
+be provided instead.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+zone "example.com" {
+       type primary;
+       file "example.com";
+       allow-update { key dhcp-server; };
+};
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-15-2" class="outline-3">
+<h3 id="sec-15-2"><span class="section-number-3">15.2</span> update-policy</h3>
+<div class="outline-text-3" id="text-15-2">
+<ul class="org-ul">
+<li>The <code>allow-update</code> clause is coarse, allowing DDNS to a zone completely, or not at all.
+<ul class="org-ul">
+<li>Complex policies are possible with <code>update-policy</code>.
+<ul class="org-ul">
+<li>Each update-policy allows DDNS for a set of RRs.
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+zone "example.com." IN {
+    type primary;
+    file "masters/example.com-zone";
+    update-policy {
+	   grant ddns-key zonesub ANY;
+    };
+};
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-15-3" class="outline-3">
+<h3 id="sec-15-3"><span class="section-number-3">15.3</span> DNS dynamic update forwarding</h3>
+<div class="outline-text-3" id="text-15-3">
+<p>
+<img id="update-forwarding" class="img-responsive" src="img/update-forwarding-00.png"></ p><input type="button" onclick="NextPage('update-forwarding','2')" value=">" /><input type="button" onclick="ResetSlides('update-forwarding')" value="O" /><input type="button" onclick="PrevPage('update-forwarding')" value="<" />
+</p>
+</div>
+</div>
+<div id="outline-container-sec-15-4" class="outline-3">
+<h3 id="sec-15-4"><span class="section-number-3">15.4</span> Dynamic Zones: SOA Serial</h3>
+<div class="outline-text-3" id="text-15-4">
+<ul class="org-ul">
+<li>There are three update options for the SOA in dynamic zones:
+<ul class="org-ul">
+<li><code>serial-update-method ( date | increment | unixtime );</code>
+<ul class="org-ul">
+<li><code>increment</code>: simple bump (the default).
+</li>
+<li><code>date</code>: YYYYMMDDnn. nn starts at zero and increments.
+</li>
+<li><code>unixtime</code>: standard unixtime in seconds.
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>The statement can be global in <code>options { }</code> or <code>view { }</code>, or
+specific to a <code>zone { }</code>.
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-15-5" class="outline-3">
+<h3 id="sec-15-5"><span class="section-number-3">15.5</span> Notes on Dynamic Updates</h3>
+<div class="outline-text-3" id="text-15-5">
+<ul class="org-ul">
+<li>To avoid constant rewriting of the zone file, a BIND primary instead writes changes to a journal file:
+<ul class="org-ul">
+<li>The journal is known as a <i>log</i> and is <b>not</b> plain-text.
+</li>
+<li>The journal's file name is the zone's, appended with <code>.jnl</code>.
+</li>
+<li>The name and the max size of a journal are configurable.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+zone "example.com" {
+   type primary;
+   file "example.com";
+   allow-update { key dhcp-server; };
+   journal "/fast-disk/example.com.jnl"
+   max-journal-size 200M;
+};
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-15-6" class="outline-3">
+<h3 id="sec-15-6"><span class="section-number-3">15.6</span> The Journal File</h3>
+<div class="outline-text-3" id="text-15-6">
+<ul class="org-ul">
+<li>The journal allows the server to recover the most recent version of the zone after a crash.
+<ul class="org-ul">
+<li>After loading the zone file, the server loads the journal.
+</li>
+<li>A journal can be viewed with: <code>named-journalprint &lt;journalfile&gt;</code>
+</li>
+</ul>
+</li>
+<li>Each line adds or deletes one RR.
+</li>
+</ul>
+<pre class="example">
+% named-journalprint zone02.dnslab.org.jnl
+del zone02.dnslab.org.	30	IN	SOA	server02.dnslab.org. hm.zone02.dnslab.org. 2016011308 7200 3600 5184000 30
+del me.zone02.dnslab.org.	30	IN	TXT	"my birthday!  go me!"
+add zone02.dnslab.org.	30	IN	SOA	server02.dnslab.org. hm.zone02.dnslab.org. 2016013100 7200 3600 5184000 30
+add me.zone02.dnslab.org.	30	IN	TXT	"hi there"
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-15-7" class="outline-3">
+<h3 id="sec-15-7"><span class="section-number-3">15.7</span> More Notes on Dynamic Updates</h3>
+<div class="outline-text-3" id="text-15-7">
+<ul class="org-ul">
+<li>Periodically, an authoritative server writes the zone from memory
+to the zone file.
+<ul class="org-ul">
+<li>BIND writes 15 minutes after receiving an update.
+</li>
+<li>When the primary writes the file, the format changes dramatically:
+the order is changed, comments are gone, and variable directives
+are gone.
+</li>
+</ul>
+</li>
+<li>The logging category for dynamic updates: <code>update</code>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-15-8" class="outline-3">
+<h3 id="sec-15-8"><span class="section-number-3">15.8</span> DDNS Zone File Editing</h3>
+<div class="outline-text-3" id="text-15-8">
+<ul class="org-ul">
+<li>Manual changes to a dynamic zone file are lost when the zone file is written!
+<ul class="org-ul">
+<li>The changes are never used in query responses.
+</li>
+</ul>
+</li>
+<li>Manual changes can be made by freezing a zone, however <b>freezing disabled DDNS</b>!
+<ul class="org-ul">
+<li>Freezing should generally be avoided.
+</li>
+<li>Use <code>nsupdate</code> to make changes to a dynamic zone.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-15-8-1" class="outline-4">
+<h4 id="sec-15-8-1"><span class="section-number-4">15.8.1</span> DDNS: Freezing and Thawing</h4>
+<div class="outline-text-4" id="text-15-8-1">
+<ul class="org-ul">
+<li><code>rndc freeze &lt;zone&gt;</code>
+<ul class="org-ul">
+<li>Freezing without specifying a zone, freezes all zones.
+</li>
+<li>The journal can be deleted when the zone is frozen.
+<ul class="org-ul">
+<li>It contains information for IXFR, and deletion is not recommended.
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><code>rndc thaw &lt;zone&gt;</code>
+<ul class="org-ul">
+<li>A NOTIFY is sent when a zone is thawed.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-15-9" class="outline-3">
+<h3 id="sec-15-9"><span class="section-number-3">15.9</span> Using nsupdate</h3>
+<div class="outline-text-3" id="text-15-9">
+<ul class="org-ul">
+<li><code>nsupdate</code> is a BIND application for sending dynamic changes to a server.
+<ul class="org-ul">
+<li>It works both interactively and non-interactively.
+</li>
+<li>In both modes, commands are one-per-line.
+</li>
+</ul>
+</li>
+<li>The three main commands are:
+<ul class="org-ul">
+<li><code>update add</code>
+</li>
+<li><code>update delete</code>
+</li>
+<li><code>send</code>
+</li>
+</ul>
+</li>
+<li><code>update</code> prepares RRs changes, <code>send</code> executes them.
+</li>
+<li><b>Note:</b> ENTER by itself is the same as <code>send</code>
+</li>
+<li>Non-interactively, commands come from a file or STDIN.
+</li>
+</ul>
+<pre class="example">
+$ nsupdate nsupdate.input.file
+
+$ nsupdate &lt; nsupdate.input.file
+</pre>
+<ul class="org-ul">
+<li>Interactive mode:
+</li>
+</ul>
+<pre class="example">
+$ nsupdate
+&gt;
+</pre>
+<ul class="org-ul">
+<li>The interactive command show allows changes to be reviewed before being sent.
+<ul class="org-ul">
+<li>Here no updates have been prepared.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+$ nsupdate
+&gt; show
+Outgoing update query:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: UPDATE, status: NOERROR, id:      0
+;; flags:; ZONE: 0, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+&gt;
+</pre>
+<ul class="org-ul">
+<li><code>update add</code> prepares a RR to be added to a zone.
+<ul class="org-ul">
+<li>All fields, except the Class must be provided.
+</li>
+<li>TTL can be provided in a separate statement.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+&gt; update add a.example.com IN A 192.0.2.1
+ttl 'IN': not a valid number
+&gt; update add a.example.com 3600 IN A 192.0.2.1
+&gt; ttl 3600
+&gt; update add a.example.com AAAA 2001:db8:0:deaf::1
+&gt; show
+Outgoing update query:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: UPDATE, status: NOERROR, id:      0
+;; flags:; ZONE: 0, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; UPDATE SECTION:
+a.example.com.		3600	IN	A	192.0.2.1
+a.example.com.		3600	IN	AAAA	2001:db8:0:deaf::1
+&gt; send
+</pre>
+<ul class="org-ul">
+<li><code>update delete</code> prepares RRs to be deleted.
+<ul class="org-ul">
+<li>Class is optional, and TTL, if provided, is ignored.
+</li>
+<li>Providing all fields except TTL and Class deletes one RR.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+&gt; update delete b.example.com. 1800 A 192.0.2.99
+&gt; update delete example.net. MX 15 mailserver.example.net.
+&gt; show
+Outgoing update query:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: UPDATE, status: NOERROR, id:      0
+;; flags:; ZONE: 0, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; UPDATE SECTION:
+b.example.com.		0	NONE	A	192.0.2.99
+example.net.		    0	NONE	MX	15 mailserver.example.net.
+</pre>
+<ul class="org-ul">
+<li><code>update delete</code> Providing the RTYPE without RDATA, deletes a RRSet.
+</li>
+</ul>
+<pre class="example">
+&gt; update delete b.example.com. AAAA
+&gt; update delete c.example.com IN SRV
+&gt; show
+Outgoing update query:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: UPDATE, status: NOERROR, id:      0
+;; flags:; ZONE: 0, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; UPDATE SECTION:
+b.example.com.		0	NONE	A	192.0.2.99
+example.net.		  0	NONE	MX	15 mailserver.example.net.
+b.example.com.		0	ANY	AAAA
+c.example.com.		0	ANY	SRV
+&gt;
+</pre>
+<ul class="org-ul">
+<li><code>update delete</code> Omitting RTYPE and RDATA deletes all RRSets.
+</li>
+</ul>
+<pre class="example">
+&gt; update delete d.example.com.
+&gt; show
+Outgoing update query:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: UPDATE, status: NOERROR, id:      0
+;; flags:; ZONE: 0, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; UPDATE SECTION:
+b.example.com.		0	NONE	A	192.0.2.99
+example.net.	    0	NONE	MX	15 mailserver.example.net.
+b.example.com.		0	ANY	AAAA
+c.example.com.		0	ANY	SRV
+d.example.com.		0	ANY	ANY
+</pre>
+<ul class="org-ul">
+<li>Since BIND 9.9.0, the key word <code>update</code> is optional.
+</li>
+</ul>
+<pre class="example">
+&gt; delete  www.example.com. A
+&gt; add www.example.com. 600 A 192.0.2.80
+&gt; add www.example.com. 600 A 192.0.2.88
+</pre>
+<ul class="org-ul">
+<li><code>send</code> - Transmit the prepared updates to the authoritative server.
+<ul class="org-ul">
+<li><b>WARNING - hitting ENTER is the same as send!</b>
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+&gt; send
+</pre>
+<ul class="org-ul">
+<li><code>answer</code> - shows the results received from the server after a <code>send</code>.
+</li>
+</ul>
+<pre class="example">
+&gt; send
+update failed: REFUSED
+&gt; answer
+Answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: UPDATE, status: REFUSED, id:  13117
+;; flags: qr; ZONE: 0, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+&gt;
+</pre>
+<ul class="org-ul">
+<li><code>prereq nxdomain &lt;domain name&gt;</code> - requires that "domain name" doesn't exist (no RRs of any type).
+</li>
+</ul>
+<pre class="example">
+&gt; prereq nxdomain www.example.com
+&gt; update add www.example.com 3600 CNAME example.com.
+&gt; send
+</pre>
+<ul class="org-ul">
+<li><code>prereq yxdomain &lt;domain name&gt;</code> - requires that "domain name" does exist.
+</li>
+</ul>
+<pre class="example">
+&gt; prereq yxdomain www.example.com
+&gt; update add web.example.com 3600 CNAME www.example.com.
+&gt; send
+</pre>
+<ul class="org-ul">
+<li><code>server &lt;servername or IP&gt; [port]</code> - specifies the authoritative server that will receive the update.
+<ul class="org-ul">
+<li>If not set, <code>nsupdate</code> uses <code>MNAME</code> from the SOA RR and port 53.
+</li>
+<li>Generally, updates should be sent to the primary authoritative server.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+&gt; server ns0.example.com
+</pre>
+<ul class="org-ul">
+<li><code>nsupdate -l</code> sends all updates to localhost.
+<ul class="org-ul">
+<li>The <code>MNAME</code> is not checked, and server commands are ignored.
+</li>
+<li>This is easy use, and is recommended if you are on the primary server
+</li>
+</ul>
+</li>
+<li><code>local &lt;IP address&gt; [port]</code> - specifies the outgoing IP address.
+This is useful for multi-homed machines, especially when IPv6 is
+used, and when the server limits updates to specific IPs.
+</li>
+</ul>
+<pre class="example">
+&gt; local 2001:db8:100:0:ff:aa01:42:12:feaa
+</pre>
+<ul class="org-ul">
+<li><code>zone &lt;zonename&gt;</code> - specify the zone to be changed.
+<ul class="org-ul">
+<li>This is necessary when the update is an NS or glue RR to be made
+in the parent zone.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+$ nsupdate
+&gt; zone example.com.
+&gt; update add ns1.subdomain.example.com. 3600 IN A 192.0.2.53
+&gt; update add ns2.subdomain.example.com. 3600 IN A 203.0.113.53
+&gt; send
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-15-10" class="outline-3">
+<h3 id="sec-15-10"><span class="section-number-3">15.10</span> ddns-confgen</h3>
+<div class="outline-text-3" id="text-15-10">
+<ul class="org-ul">
+<li><code>ddns-confgen</code> generates a TSIG configuration for secure dynamic
+updates (e.g. <code>nsupdate</code>).
+</li>
+</ul>
+<pre class="example">
+&gt; ddns-confgen
+# To activate this key, place the following in named.conf, and
+# in a separate keyfile on the system or systems from which nsupdate
+# will be run:
+key "ddns-key" {
+	algorithm hmac-sha256;
+	secret "kDyXolMZX2YyGjiRm008GOr4NFnZ5drrvLA0owKbLZo=";
+};
+
+# Then, in the "zone" statement for each zone you wish to dynamically
+# update, place an "update-policy" statement granting update permission
+# to this key.  For example, the following statement grants this key
+# permission to update any name within the zone:
+update-policy {
+	grant ddns-key zonesub ANY;
+};
+
+# After the keyfile has been placed, the following command will
+# execute nsupdate using this key:
+nsupdate -k &lt;keyfile&gt;
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-15-11" class="outline-3">
+<h3 id="sec-15-11"><span class="section-number-3">15.11</span> DNS Notify</h3>
+<div class="outline-text-3" id="text-15-11">
+<ul class="org-ul">
+<li>NOTIFY allows a primary authoritative server to inform its
+secondaries when a zone changes.
+<ul class="org-ul">
+<li>The secondary accept NOTIFY as a "pop" of the refresh timer.
+</li>
+</ul>
+</li>
+<li>Therefore secondary servers typically transfer a zone far more
+frequently.
+<ul class="org-ul">
+<li>For large zones, this generates a huge amount of traffic.
+</li>
+<li>For a very large zone, a transfer might not complete before the
+next dynamic update and the next NOTIFY!
+</li>
+</ul>
+</li>
+<li>Each update to a zone can increment the serial number thereby triggering a NOTIFY.
+</li>
+<li>A server with the primary zone determines which servers are
+secondaries by looking at the zone's NS RRset.
+<ul class="org-ul">
+<li>A name in the NS RRSet that matches the <code>MNAME</code>, is not sent a
+NOTIFY.
+</li>
+</ul>
+</li>
+<li>When a secondary receives a NOTIFY, it checks:
+<ul class="org-ul">
+<li>that it is for a zone for which it is authoritative.
+</li>
+<li>that it came from a primary server for the zone.
+</li>
+<li>that the SOA serial has increased.
+</li>
+</ul>
+</li>
+<li>If the NOTIFY is accepted, the secondary immediately schedules a
+refresh of the zone.
+</li>
+<li>The secondary sends a NOTIFY to the other secondary servers.
+
+<p>
+<img id="notify" class="img-responsive" src="img/notify-00.png"></ p><input type="button" onclick="NextPage('notify','5')" value=">" /><input type="button" onclick="ResetSlides('notify')" value="O" /><input type="button" onclick="PrevPage('notify')" value="<" />
+</p>
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-15-11-1" class="outline-4">
+<h4 id="sec-15-11-1"><span class="section-number-4">15.11.1</span> Configuring NOTIFY</h4>
+<div class="outline-text-4" id="text-15-11-1">
+<ul class="org-ul">
+<li>For primaries and secondaries, <code>NOTIFY</code> is on by default.
+</li>
+<li>For a secondary not used as a downstream primary, it can be disabled:
+</li>
+</ul>
+<pre class="example">
+options {
+   notify no;
+};
+</pre>
+<ul class="org-ul">
+<li>To disable <code>NOTIFY</code> for a particular zone:
+<pre class="example">
+zone "example.com";
+	type secondary;
+	primaries { 192.0.2.110; };
+	file "bak.example.com";
+	notify no;
+};
+</pre>
+<ul class="org-ul">
+<li>Adding an address to the <code>NOTIFY</code> list for all zones:
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+options {
+       also-notify { 192.0.2.120; };
+};
+</pre>
+<ul class="org-ul">
+<li>Adding an address to the NOTIFY list for a particular zone:
+</li>
+</ul>
+<pre class="example">
+zone "example.com" {
+       type primary;
+       file "example.com";
+       also-notify { 192.0.2.120; };
+};
+</pre>
+<ul class="org-ul">
+<li>To notify only name servers listed in <code>also-notify</code>:
+</li>
+</ul>
+<pre class="example">
+options {
+       also-notify { 192.0.2.120; };
+       notify explicit;
+};
+</pre>
+<ul class="org-ul">
+<li>To notify only name servers listed in <code>also-notify</code>:
+</li>
+</ul>
+<pre class="example">
+zone "example.com" {
+       type primary;
+       file "example.com";
+       also-notify { 192.0.2.120; };
+       notify explicit;
+};
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-15-12" class="outline-3">
+<h3 id="sec-15-12"><span class="section-number-3">15.12</span> Incremental Zone Transfer (IXFR)</h3>
+<div class="outline-text-3" id="text-15-12">
+<ul class="org-ul">
+<li>An Incremental Zone Transfer (IXFR) allows a client to query just the changes since a previous version.
+<ul class="org-ul">
+<li>This generally reduces the size (and duration) of the transfer considerably.
+</li>
+<li>Like AXFRs (full zone transfer), IXFRs are sent to authoritative
+servers.
+</li>
+<li>BIND secondaries and primary servers request and provide IXFRs by
+default.
+</li>
+</ul>
+</li>
+<li>A server querying an IXFR sends a previous serial number for the zone.
+<ul class="org-ul">
+<li>For a secondary, this is its current serial number.
+</li>
+<li>Secondary: "send me changes since version 14284171."
+</li>
+</ul>
+</li>
+<li>The queried server responds with all changes since the IXFR's
+serial number.
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-15-12-1" class="outline-4">
+<h4 id="sec-15-12-1"><span class="section-number-4">15.12.1</span> QUIZ:</h4>
+<div class="outline-text-4" id="text-15-12-1">
+<p>
+<div class="exercise"> 
+What do you think happens if the server receives
+an IXFR request and doesn't know the changes?  Write the answer in the
+chat.  
+</div>
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-15-13" class="outline-3">
+<h3 id="sec-15-13"><span class="section-number-3">15.13</span> IXFR example</h3>
+<div class="outline-text-3" id="text-15-13">
+<ul class="org-ul">
+<li>The next examples show BIND's response to an IXFR after the following update.
+<ul class="org-ul">
+<li>RFC 1995 allows several formats for the IXFR response
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+$ dig +short SOA dnslab.org
+authoritative.dnslab.org. hostmaster.dnslab.org. 2013081127 7200 1800 3542400 30
+
+% nsupdate -l
+&gt; update add zzz.dnslab.org 30 TXT "Zees"
+&gt; send
+&gt; quit
+</pre>
+<ul class="org-ul">
+<li>Query with a known previous serial number.
+<ul class="org-ul">
+<li>IXFR responses always start with the current (newest) SOA RR.
+This is the same as AXFR.
+</li>
+<li>IXFR responses always end with the current (newest) SOA RR. This
+is the same as AXFR.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+$ dig +noall +answer dnslab.org ixfr=2013081127 @::1 | grep -Ev 'RRSIG|NSEC'
+dnslab.org.		40	IN	SOA	authoritative.dnslab.org. hostmaster.dnslab.org. 2013081128 7200 1800 3542400 30
+dnslab.org.		40	IN	SOA	authoritative.dnslab.org. hostmaster.dnslab.org. 2013081127 7200 1800 3542400 30
+dnslab.org.		40	IN	SOA	authoritative.dnslab.org. hostmaster.dnslab.org. 2013081128 7200 1800 3542400 30
+zzz.dnslab.org.		30	IN	TXT	"Zees"
+dnslab.org.		40	IN	SOA	authoritative.dnslab.org. hostmaster.dnslab.org. 2013081128 7200 1800 3542400 30
+</pre>
+<ul class="org-ul">
+<li>The second RR is always a SOA to delete. It is followed by additional RRs to delete (none in this case.)
+<ul class="org-ul">
+<li>This section continues until another SOA RR.
+</li>
+</ul>
+</li>
+<li>After a section of deletes, comes a sections of adds that always begins with a SOA.
+<ul class="org-ul">
+<li>In this case there are two additions.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+$ dig +noall +answer dnslab.org ixfr=2013081127 @::1 | grep -Ev 'RRSIG|NSEC'
+dnslab.org.		40	IN	SOA	authoritative.dnslab.org. hostmaster.dnslab.org. 2013081128 7200 1800 3542400 30
+dnslab.org.		40	IN	SOA	authoritative.dnslab.org. hostmaster.dnslab.org. 2013081127 7200 1800 3542400 30
+dnslab.org.		40	IN	SOA	authoritative.dnslab.org. hostmaster.dnslab.org. 2013081128 7200 1800 3542400 30
+zzz.dnslab.org.		30	IN	TXT	"Zees"
+dnslab.org.		40	IN	SOA	authoritative.dnslab.org. hostmaster.dnslab.org. 2013081128 7200 1800 3542400 30
+</pre>
+<ul class="org-ul">
+<li>The following example shows how BIND responds to an IXFR covering several versions.
+</li>
+<li>Example: A zone is at version 2. Not including SOA changes:
+<ul class="org-ul">
+<li>One RR is added. Now version 3.
+</li>
+<li>One RR is deleted. Two added. Now version 4.
+</li>
+<li>Two RR deleted. Now version 5.
+</li>
+<li>Only the SOA is changed. Now version 6.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+dig @&lt;Auth-Server&gt; &lt;Domain-Name&gt;  ixfr=2
+
+FQDN [...]  SOA 6 7200 3600 5184000 30
+FQDN [...]  SOA 2 [...]
+FQDN [...]  SOA 3 [...]
+FQDN [...]
+FQDN [...]  SOA 3 [...]
+FQDN [...]
+FQDN [...]  SOA 4 [...]
+FQDN [...]
+FQDN [...]
+FQDN [...]  SOA 4 [...]
+FQDN [...]
+FQDN [...]
+FQDN [...]  SOA 5 [...]
+FQDN [...]  SOA 5 [...]
+FQDN [...]  SOA 6 [...]
+FQDN [...]  SOA 6 7200 3600 5184000 30
+</pre>
+<p>
+<img id="ixfr" class="img-responsive" src="img/ixfr-00.png"></ p><input type="button" onclick="NextPage('ixfr','9')" value=">" /><input type="button" onclick="ResetSlides('ixfr')" value="O" /><input type="button" onclick="PrevPage('ixfr')" value="<" />
+</p>
+<ul class="org-ul">
+<li>BIND authoritative servers use the journal to identify the changes
+necessary to respond to an IXFR.
+<ul class="org-ul">
+<li>A non-dynamic zone, doesn't have a journal.
+</li>
+<li>Use <code>ixfr-from-differences yes;</code> in a zone stanza to create a
+journal for a non-dynamic zone.
+</li>
+</ul>
+</li>
+</ul>
+<p>
+<div class="exercise">
+In the examples above, we invoked <code>nsupdate</code> with option <code>-l</code> as the root user.
+Why do you think that was necessary? Write the answer in the chat.
+</div>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-15-14" class="outline-3">
+<h3 id="sec-15-14"><span class="section-number-3">15.14</span> Exercise:</h3>
+<div class="outline-text-3" id="text-15-14">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>On the primary server, create a new delegated subdomain with the name <code>dynamic.zoneNN.dnslab.org</code>
+<ul class="org-ul">
+<li>Fill the zonefile with only the SOA and two NS records (for <code>nsNNa</code> and <code>nsNNb</code>)
+</li>
+</ul>
+</li>
+<li>Create a TSIG key for dynamic updates and place the TSIG key inside the configuration on the primary
+</li>
+<li>Register this zone in the <code>named.conf</code> on the primary server as an primary dynamic zone using the configured TSIG key 
+</li>
+<li>Register this zone in the <code>named.conf</code> on the secondary server (secondary zone)
+</li>
+<li>Add the delegation <code>NS</code> records to the parent zone
+<code>zoneNN.dnslab.org</code>, increment the SOA serial number, check the
+configuration and reload the zone.
+</li>
+<li>From your resolver, make sure your BIND 9 resolver and also external public DNS resolver can resolver your new domain
+<pre class="example">
+% dig @localhost dynamic.zoneNN.dnslab.org soa
+% dig @9.9.9.9   dynamic.zoneNN.dnslab.org soa
+</pre>
+</li>
+<li>Use <code>nsupdate -k &lt;tsig-key&gt;</code>
+<ul class="org-ul">
+<li>add a IPv4-Address record with the IP-Address 192.0.2.53 to the new zone
+</li>
+<li>add a TXT record with the subdomain <code>info.dynamic.zoneNN.dnslab.org</code> and the text <code>"This is a dynamic zone"</code> to the zone
+</li>
+</ul>
+</li>
+<li>Observe the notifies send and the zone transfer beween your authoritative server
+</li>
+<li>Use <code>nsupdate</code> to remove the TXT record from the zone
+</li>
+<li>Print the zones journal with <code>named-journalprint</code>
+</li>
+<li>Request an IXFR zonetransfer with <code>dig</code>
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+</div>
 </div></div></div>
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-30 Wed 19:09</p>
+<p class="date">Created: 2024-10-30 Wed 19:52</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
