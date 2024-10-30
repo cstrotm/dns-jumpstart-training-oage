@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-30 Wed 17:58 -->
+<!-- 2024-10-30 Wed 18:14 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -110,6 +110,30 @@ $(function() {
 <li><a href="#sec-12-3">12.3. Packet Capture (Passive Replication)</a></li>
 <li><a href="#sec-12-4">12.4. DNSTAP</a></li>
 <li><a href="#sec-12-5">12.5. CHAOS: An Information Source (Built-in server information zones)</a></li>
+</ul>
+</li>
+<li><a href="#sec-13">13. DNS cookies</a>
+<ul class="nav">
+<li><a href="#sec-13-1">13.1. Protection for the Querier</a></li>
+<li><a href="#sec-13-2">13.2. Protection for the Domain Name Owner/Publisher</a></li>
+<li><a href="#sec-13-3">13.3. Protection for the Innocent</a></li>
+<li><a href="#sec-13-4">13.4. Protection for the DNS Server</a></li>
+<li><a href="#sec-13-5">13.5. DNS Client Cookies</a></li>
+<li><a href="#sec-13-6">13.6. DNS Server Cookies</a></li>
+<li><a href="#sec-13-7">13.7. Off-Path Attacks</a></li>
+<li><a href="#sec-13-8">13.8. Client/Server Support</a></li>
+<li><a href="#sec-13-9">13.9. DNS Cookie Facts</a></li>
+<li><a href="#sec-13-10">13.10. Cookies: Initial Query</a></li>
+<li><a href="#sec-13-11">13.11. Cookies: Initial Query Response</a></li>
+<li><a href="#sec-13-12">13.12. Cookies: Client Security</a></li>
+<li><a href="#sec-13-13">13.13. Cookies: Client Caching</a></li>
+<li><a href="#sec-13-14">13.14. Cookies: Subsequent Queries</a></li>
+<li><a href="#sec-13-15">13.15. Cookies: Valid Server Cookie</a></li>
+<li><a href="#sec-13-16">13.16. Cookies: Invalid Server Cookie</a></li>
+<li><a href="#sec-13-17">13.17. Cookies in BIND 9</a></li>
+<li><a href="#sec-13-18">13.18. Cookies in dig: Server Cookie</a></li>
+<li><a href="#sec-13-19">13.19. Cookies in dig: Client Cookie</a></li>
+<li><a href="#sec-13-20">13.20. Exercise</a></li>
 </ul>
 </li>
 </ul>
@@ -4054,7 +4078,7 @@ dnstap-identity "dnsrNN-server";
 <div class="outline-text-4" id="text-12-5-1">
 <ul class="org-ul">
 <li>The rarely used DNS network classes <i>Chaos</i> (<code>CH</code>) and <i>Hesiod</i> (<code>HS</code>) were
-developed at MIT and are not widely used.
+developed at MIT.
 </li>
 <li>The ISC has repurposed Chaos providing TXT RRs with BIND server
 information.
@@ -4214,11 +4238,507 @@ options {
 </div>
 </div>
 </div>
+
+<div id="outline-container-sec-13" class="outline-2">
+<h2 id="sec-13"><span class="section-number-2">13</span> DNS cookies</h2>
+<div class="outline-text-2" id="text-13">
+<ul class="org-ul">
+<li>DNS Cookies provide protection for:
+<ol class="org-ol">
+<li>Queriers (stub resolvers or RDNS servers)
+</li>
+<li>Domain name owners
+</li>
+<li>The innocent
+</li>
+<li>DNS servers
+</li>
+</ol>
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-13-1" class="outline-3">
+<h3 id="sec-13-1"><span class="section-number-3">13.1</span> Protection for the Querier</h3>
+<div class="outline-text-3" id="text-13-1">
+<ul class="org-ul">
+<li>Cookies protect a querier against bogus answers.
+<ul class="org-ul">
+<li>If the querier is a DNS resolver, cache poisoning is thwarted.
+</li>
+</ul>
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/0901-DNS-cookies.png" class="img-responsive" alt="0901-DNS-cookies.png">
+</p>
+</figure>
+</div>
+</div>
+<div id="outline-container-sec-13-2" class="outline-3">
+<h3 id="sec-13-2"><span class="section-number-3">13.2</span> Protection for the Domain Name Owner/Publisher</h3>
+<div class="outline-text-3" id="text-13-2">
+<ul class="org-ul">
+<li>A bogus answer additionally injures the owner of the fraudulently
+answered domain name.
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/0902-DNS-cookies.png" class="img-responsive" alt="0902-DNS-cookies.png">
+</p>
+</figure>
+</div>
+</div>
+
+<div id="outline-container-sec-13-3" class="outline-3">
+<h3 id="sec-13-3"><span class="section-number-3">13.3</span> Protection for the Innocent</h3>
+<div class="outline-text-3" id="text-13-3">
+<ul class="org-ul">
+<li>Cookie protect an innocent victim against spoofed IP address
+attacks.
+</li>
+</ul>
+
+<p>
+<img id="Reflection-Attack" class="img-responsive" src="img/Reflection-Attack-00.png"></ p><input type="button" onclick="NextPage('Reflection-Attack','2')" value=">" /><input type="button" onclick="ResetSlides('Reflection-Attack')" value="O" /><input type="button" onclick="PrevPage('Reflection-Attack')" value="<" />
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-13-4" class="outline-3">
+<h3 id="sec-13-4"><span class="section-number-3">13.4</span> Protection for the DNS Server</h3>
+<div class="outline-text-3" id="text-13-4">
+<ul class="org-ul">
+<li>Cookie protects DNS servers from being DoS victims &amp; from being misused in reflection attacks.
+<ul class="org-ul">
+<li>This works for both authoritative and resolver servers.
+</li>
+</ul>
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/0904-DNS-cookies.png" class="img-responsive" alt="0904-DNS-cookies.png">
+</p>
+</figure>
+
+<p>
+Cookies allow DNS servers to quickly respond to spoofed IPs, avoiding
+the cost of handling the query, avoiding applying other secure
+mechanisms (e.g response rate limiting), and reducing CPU usage. (This
+protects the server from being a victim of a DoS attack) With cookies,
+the server limits its misuse in a reflection, making the Internet a
+better place.
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-13-5" class="outline-3">
+<h3 id="sec-13-5"><span class="section-number-3">13.5</span> DNS Client Cookies</h3>
+<div class="outline-text-3" id="text-13-5">
+<ul class="org-ul">
+<li>Client cookies <b>automatically</b> protect a querier from bogus answers
+and from cache poisoning.
+</li>
+<li>This further protects the domain owner!
+<ul class="org-ul">
+<li>An attacker can not provide bogus RRs for her domain.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-13-6" class="outline-3">
+<h3 id="sec-13-6"><span class="section-number-3">13.6</span> DNS Server Cookies</h3>
+<div class="outline-text-3" id="text-13-6">
+<ul class="org-ul">
+<li>Server cookies <b>allow</b> a server to authenticate that queries are
+not from a spoofed IP.
+</li>
+<li>This protects a victim whose IP has been spoofed.
+</li>
+<li>This protects the server against DoS.
+<ul class="org-ul">
+<li>It can quickly respond to the query before executing costly work
+(e.g. DNSSEC crypto for any server, recursion for DNS resolver)
+</li>
+</ul>
+</li>
+<li>Server Cookies require BIND configuration.
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-13-7" class="outline-3">
+<h3 id="sec-13-7"><span class="section-number-3">13.7</span> Off-Path Attacks</h3>
+<div class="outline-text-3" id="text-13-7">
+<ul class="org-ul">
+<li>Cookie security is against off-path attacks.
+<ul class="org-ul">
+<li>If an attacker has the packets between the querier &amp; server,
+cookies add no security.
+</li>
+</ul>
+</li>
+</ul>
+
+<figure>
+<p><img src="./img/0905-DNS-cookies.png" class="img-responsive" alt="0905-DNS-cookies.png">
+</p>
+</figure>
+</div>
+</div>
+<div id="outline-container-sec-13-8" class="outline-3">
+<h3 id="sec-13-8"><span class="section-number-3">13.8</span> Client/Server Support</h3>
+<div class="outline-text-3" id="text-13-8">
+<ul class="org-ul">
+<li>Cookies require support from querier and server.
+<ul class="org-ul">
+<li>If implemented by only one side, cookies are ignored.
+</li>
+</ul>
+</li>
+<li>With cookies, port randomization is not required.
+</li>
+</ul>
+
+<figure>
+<p><img src="./img/0906-DNS-cookies.png" class="img-responsive" alt="0906-DNS-cookies.png">
+</p>
+</figure>
+</div>
+</div>
+<div id="outline-container-sec-13-9" class="outline-3">
+<h3 id="sec-13-9"><span class="section-number-3">13.9</span> DNS Cookie Facts</h3>
+<div class="outline-text-3" id="text-13-9">
+<ul class="org-ul">
+<li>Cookies are 64-bit pseudorandom values.
+</li>
+<li>They are an OPT RR option, and thus require EDNS.
+</li>
+<li>A server doesn't store per-client state.
+<ul class="org-ul">
+<li>It doesn't store any cookie state.
+</li>
+</ul>
+</li>
+<li>DNS cookies are not related to browser cookies.
+</li>
+<li><a href="https://tools.ietf.org/html/rfc7873">RFC 7873.  2016-05. Domain Name System (DNS) Cookies</a>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-13-10" class="outline-3">
+<h3 id="sec-13-10"><span class="section-number-3">13.10</span> Cookies: Initial Query</h3>
+<div class="outline-text-3" id="text-13-10">
+
+<figure>
+<p><img src="./img/0907-DNS-cookies.png" class="img-responsive" alt="0907-DNS-cookies.png">
+</p>
+</figure>
+</div>
+</div>
+
+<div id="outline-container-sec-13-11" class="outline-3">
+<h3 id="sec-13-11"><span class="section-number-3">13.11</span> Cookies: Initial Query Response</h3>
+<div class="outline-text-3" id="text-13-11">
+
+<figure>
+<p><img src="./img/0908-DNS-cookies.png" class="img-responsive" alt="0908-DNS-cookies.png">
+</p>
+</figure>
+</div>
+</div>
+
+<div id="outline-container-sec-13-12" class="outline-3">
+<h3 id="sec-13-12"><span class="section-number-3">13.12</span> Cookies: Client Security</h3>
+<div class="outline-text-3" id="text-13-12">
+
+<figure>
+<p><img src="./img/0909-DNS-cookies.png" class="img-responsive" alt="0909-DNS-cookies.png">
+</p>
+</figure>
+</div>
+</div>
+
+<div id="outline-container-sec-13-13" class="outline-3">
+<h3 id="sec-13-13"><span class="section-number-3">13.13</span> Cookies: Client Caching</h3>
+<div class="outline-text-3" id="text-13-13">
+
+<figure>
+<p><img src="./img/0910-DNS-cookies.png" class="img-responsive" alt="0910-DNS-cookies.png">
+</p>
+</figure>
+</div>
+</div>
+
+<div id="outline-container-sec-13-14" class="outline-3">
+<h3 id="sec-13-14"><span class="section-number-3">13.14</span> Cookies: Subsequent Queries</h3>
+<div class="outline-text-3" id="text-13-14">
+
+<figure>
+<p><img src="./img/0911-DNS-cookies.png" class="img-responsive" alt="0911-DNS-cookies.png">
+</p>
+</figure>
+</div>
+</div>
+
+<div id="outline-container-sec-13-15" class="outline-3">
+<h3 id="sec-13-15"><span class="section-number-3">13.15</span> Cookies: Valid Server Cookie</h3>
+<div class="outline-text-3" id="text-13-15">
+<ul class="org-ul">
+<li>What happens if the server cookie is valid?
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/0912-DNS-cookies.png" class="img-responsive" alt="0912-DNS-cookies.png">
+</p>
+</figure>
+</div>
+</div>
+
+<div id="outline-container-sec-13-16" class="outline-3">
+<h3 id="sec-13-16"><span class="section-number-3">13.16</span> Cookies: Invalid Server Cookie</h3>
+<div class="outline-text-3" id="text-13-16">
+
+<figure>
+<p><img src="./img/0913-DNS-cookies.png" class="img-responsive" alt="0913-DNS-cookies.png">
+</p>
+</figure>
+</div>
+</div>
+
+<div id="outline-container-sec-13-17" class="outline-3">
+<h3 id="sec-13-17"><span class="section-number-3">13.17</span> Cookies in BIND 9</h3>
+<div class="outline-text-3" id="text-13-17">
+<ul class="org-ul">
+<li>Beginning with 9.11, dig sends cookies by default.
+</li>
+<li>(Standard) Cookie support in <code>dig</code> began with 9.10.3.
+</li>
+<li>These <code>dig</code> options are directly related to cookies. (The first two
+are enabled by default.)
+<ul class="org-ul">
+<li><code>+[no]cookie</code> - Add a (random) client COOKIE to queries
+</li>
+<li><code>+[no]badcookie</code> - Re-query upon a BADCOOKIE response
+</li>
+<li><code>+cookie=X</code> - Send cookie X, a server or client cookie
+</li>
+</ul>
+</li>
+
+<li>If a query has a valid server cookie, RRL (Response Rate Limiting)
+is not applied.
+<ul class="org-ul">
+<li><code>named.conf</code> has configuration <code>options{};</code> related to cookies.
+<ul class="org-ul">
+<li>Other options, such as those for EDNS, also play a roll.
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><code>require-server-cookie boolean;</code>
+<ul class="org-ul">
+<li>Default <code>no</code>. <code>yes</code>: query without cookie response = <code>BADCOOKIE</code>
+</li>
+<li>This is the most important option.
+</li>
+</ul>
+</li>
+<li><code>require-cookie boolean;</code> (inside a <code>server {};</code> block, BIND 9.20+)
+<ul class="org-ul">
+<li>This option specifies whether there should be a DNS COOKIE in the
+response for a given IP address/server; if not, named falls back
+to TCP. This is useful if it is known that a given server
+supports DNS COOKIE. It can also be used to force all non-DNS
+COOKIE responses to fall back to TCP.
+</li>
+</ul>
+</li>
+<li><code>cookie-algorithm (aes|siphash24);</code>
+<ul class="org-ul">
+<li>Default= <code>aes</code> (BIND 9.18 and earlier) / <code>siphash24</code> (BIND 9.20+)
+</li>
+</ul>
+</li>
+<li><code>cookie-secret string;</code>
+<ul class="org-ul">
+<li>Default= <code>random</code>. Necessary to set this value to fixed content
+of all machines that are part of an (anycast) cluster.
+</li>
+</ul>
+</li>
+<li><code>nocookie-udp-size integer;</code>
+<ul class="org-ul">
+<li>If Query has no cookie, limit UDP response size. Default=4096B. Lowest allowed 128B.
+</li>
+</ul>
+</li>
+<li><code>send-cookie boolean;</code>
+<ul class="org-ul">
+<li>Default= <code>yes</code>.  Option is for DNS resolver server servers.
+</li>
+<li><code>send-cookie</code> can also be used in a <code>server {};</code>
+statement. Setting it to <code>no</code> works around a broken server not
+properly handling cookies.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-13-18" class="outline-3">
+<h3 id="sec-13-18"><span class="section-number-3">13.18</span> Cookies in dig: Server Cookie</h3>
+<div class="outline-text-3" id="text-13-18">
+<ul class="org-ul">
+<li>This server cookie is valid (good).
+</li>
+</ul>
+<pre class="example">
+$ dig @ns12a.dnslab.org zone12.dnslab.org +nocmd +noqu +norec
+
+; &lt;&lt;&gt;&gt; DiG 9.11.4-P2-RedHat-9.11.4-26.P2.el8 &lt;&lt;&gt;&gt; @ns12a.dnslab.org zone12.dnslab.org +nocmd +noqu +norec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 15954
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 77eb710a2d489ed5010000005ecdff33b816374a28e8fde5 (good)
+;; ANSWER SECTION:
+zone12.dnslab.org.	60	IN	A	161.35.224.95
+
+;; Query time: 155 msec
+;; SERVER: 161.35.224.95#53(161.35.224.95)
+;; WHEN: Wed May 27 05:48:35 UTC 2020
+;; MSG SIZE  rcvd: 88
+</pre>
+<ul class="org-ul">
+<li>Identical queries, but dig doesn't save server cookies, or even its
+own client cookie. Each time dig queries it use a new client
+cookie, and thus get a new server cookie.
+</li>
+</ul>
+<pre class="example">
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 41cb7f09d4942eb3010000005ecdff829ab46f795ab83c4c (good)
+</pre>
+<ul class="org-ul">
+<li>and another
+</li>
+</ul>
+<pre class="example">
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: bf7e888966399c5b010000005ecdff985ecbdb747d5b7955 (good)
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-13-19" class="outline-3">
+<h3 id="sec-13-19"><span class="section-number-3">13.19</span> Cookies in dig: Client Cookie</h3>
+<div class="outline-text-3" id="text-13-19">
+<ul class="org-ul">
+<li>The command line switch <code>+qr</code> makes <code>dig</code> print the outgoing query
+in addition to the received answer. We see the client cookie in the
+outgoing query.
+</li>
+</ul>
+<pre class="example">
+$ dig @ns12a.dnslab.org zone12.dnslab.org +nocmd +qr +norec
+
+; &lt;&lt;&gt;&gt; DiG 9.11.4-P2-RedHat-9.11.4-26.P2.el8 &lt;&lt;&gt;&gt; @ns12a.dnslab.org zone12.dnslab.org +nocmd +qr +norec
+; (1 server found)
+;; global options: +cmd
+;; Sending:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 10846
+;; flags: ad; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+; COOKIE: 919e4f49e09f6d5d
+;; QUESTION SECTION:
+;zone12.dnslab.org.		IN	A
+
+;; QUERY SIZE: 56
+
+;; Got answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 10846
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 919e4f49e09f6d5d010000005ecdffcd693be2fca534ac93 (good)
+;; QUESTION SECTION:
+;zone12.dnslab.org.		IN	A
+
+;; ANSWER SECTION:
+zone12.dnslab.org.	60	IN	A	161.35.224.95
+
+;; Query time: 155 msec
+;; SERVER: 161.35.224.95#53(161.35.224.95)
+;; WHEN: Wed May 27 05:51:09 UTC 2020
+;; MSG SIZE  rcvd: 88
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-13-20" class="outline-3">
+<h3 id="sec-13-20"><span class="section-number-3">13.20</span> Exercise</h3>
+<div class="outline-text-3" id="text-13-20">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Configure <code>require-server-cookie yes;</code> in the <code>options</code> block of
+the primary authoritative servers (<code>nsNNa</code>)
+</li>
+<li>Check the configuration and reload
+</li>
+<li>Send two queries with an invalid server cookie, one to the primary
+(requires a good cookie), one to the secondary (runs with the
+default cookie configuration)
+</li>
+</ul>
+<pre class="example">
+dig @nsNNa.dnslab.org zoneNN.dnslab.org  \
+    +norec +noall +comment +nobadcookie \
+    +cookie=0123456789abcdef0123456789abcdef0123456789abcdef
+dig @nsNNb.dnslab.org zoneNN.dnslab.org  \
+    +norec +noall +comment +nobadcookie \
+    +cookie=0123456789abcdef0123456789abcdef0123456789abcdef
+</pre>
+<ul class="org-ul">
+<li>Post the return code received for <code>nsNNa</code> and <code>nsNNb</code> to the chat
+</li>
+</ul>
+<p>
+</div>
+</p>
+
+
+<p>
+<hr />
+</p>
+</div>
+</div>
+</div>
 </div></div></div>
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-30 Wed 17:58</p>
+<p class="date">Created: 2024-10-30 Wed 18:14</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
