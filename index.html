@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-30 Wed 13:53 -->
+<!-- 2024-10-30 Wed 15:10 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -101,6 +101,14 @@ $(function() {
 <li><a href="#sec-11-13">11.13. dig +short</a></li>
 <li><a href="#sec-11-14">11.14. Truncate &amp; dig +ignore</a></li>
 <li><a href="#sec-11-15">11.15. DNSSEC troubleshooting</a></li>
+</ul>
+</li>
+<li><a href="#sec-12">12. Getting information</a>
+<ul class="nav">
+<li><a href="#sec-12-1">12.1. Statistics</a></li>
+<li><a href="#sec-12-2">12.2. Query Logging</a></li>
+<li><a href="#sec-12-3">12.3. Packet Capture (Passive Replication)</a></li>
+<li><a href="#sec-12-4">12.4. DNSTAP</a></li>
 </ul>
 </li>
 </ul>
@@ -3046,11 +3054,969 @@ Write answers in the chat.
 </div>
 </div>
 </div>
+<div id="outline-container-sec-12" class="outline-2">
+<h2 id="sec-12"><span class="section-number-2">12</span> Getting information</h2>
+<div class="outline-text-2" id="text-12">
+</div><div id="outline-container-sec-12-1" class="outline-3">
+<h3 id="sec-12-1"><span class="section-number-3">12.1</span> Statistics</h3>
+<div class="outline-text-3" id="text-12-1">
+</div><div id="outline-container-sec-12-1-1" class="outline-4">
+<h4 id="sec-12-1-1"><span class="section-number-4">12.1.1</span> RNDC statistics</h4>
+<div class="outline-text-4" id="text-12-1-1">
+<ul class="org-ul">
+<li><code>rndc stats</code>: Write BIND statistics to a file.
+<ul class="org-ul">
+<li>The default file is: <code>named.stats</code>
+</li>
+<li>It can be changed with the <code>statistics-file</code> statement in <code>named.conf</code>
+</li>
+</ul>
+<pre class="example">
+% rndc stats
+</pre>
+</li>
+<li>Rerunning rndc stats appends the file
+<pre class="example">
+% rndc stats
+% more /var/named/named.stats
++++ Statistics Dump +++ (1385101842)
+++ Incoming Requests ++
+              154700 QUERY
+                   4 IQUERY
+                  49 NOTIFY
+++ Incoming Queries ++
+              103379 A
+                8330 NS
+                1507 CNAME
+                1857 SOA
+                7716 PTR
+                3755 MX
+               16795 TXT
+                6913 AAAA
+                 159 SRV
+                 292 NSEC
+                1885 DNSKEY
+                   64 IXFR
+                   3 AXFR
+                  143 ANY
+++ Outgoing Queries ++
+[View: default]
+               95395 A
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-12-1-2" class="outline-4">
+<h4 id="sec-12-1-2"><span class="section-number-4">12.1.2</span> XML/JSON/Web Statistics-Channel</h4>
+<div class="outline-text-4" id="text-12-1-2">
+<ul class="org-ul">
+<li>BIND can be monitored over a web interface.
+<ul class="org-ul">
+<li>The statistics-channel is enabled in <code>named.conf</code>,
+</li>
+<li>note, this is not under <code>options {}</code>, but its own stanza.
+</li>
+<li>This config listens on all IP addresses, TCP port 5353, but only the host 192.168.53.101 can connect.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+statistics-channels {
+        inet * port 5353 allow { 192.168.53.101; };
+};
+</pre>
+
+<p>
+<img src="./img/XML-statistics.png" class="img-responsive" alt="XML-statistics.png">
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>The statistics file produced by <code>rndc stats</code> is frequently used by
+monitoring tools to produce pretty graphs. Logged into your server,
+space out two invocations of <code>rndc stats</code> and check the output
+in your server's statistics file.
+What could be problems when processing this file? Write answers in the chat.
+</li>
+<li>Enable the XML statistics channel in <code>named.conf</code>
+<pre class="example">
+ statistics-channels {
+      inet * port 80 allow { any; };
+};
+</pre>
+</li>
+<li>SELinux restricts the ports that the BIND 9 process <code>named</code> can
+use. Allow the <code>named</code> process to bind to port 80 (HTTP)
+<pre class="example">
+% setsebool named_tcp_bind_http_port 1
+</pre>
+</li>
+<li>Open port 80 in the firewall
+<pre class="example">
+% firewall-cmd --permanent --zone=public --add-port=80/tcp
+% firewall-cmd --reload
+</pre>
+</li>
+<li>Restart (not reload) the BIND 9 server process
+<pre class="example">
+% systemctl restart isc-bind-named
+</pre>
+</li>
+<li>Use the <code>netstat</code>, <code>ss</code> or <code>lsof</code> (needs to be installed) commands
+to verify that the <code>named</code> process does listen on port 80
+</li>
+<li>Access the web-page on the server with your browser
+</li>
+<li>Use the <code>curl</code> utility to query your server at the URL
+<code>http://127.0.0.1/json</code> and note the server's <code>version</code> number.
+Write the answer in the chat.
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-12-2" class="outline-3">
+<h3 id="sec-12-2"><span class="section-number-3">12.2</span> Query Logging</h3>
+<div class="outline-text-3" id="text-12-2">
+</div><div id="outline-container-sec-12-2-1" class="outline-4">
+<h4 id="sec-12-2-1"><span class="section-number-4">12.2.1</span> Logging of Queries</h4>
+<div class="outline-text-4" id="text-12-2-1">
+<ul class="org-ul">
+<li>Query logging stores queries arriving at a server.
+<ul class="org-ul">
+<li>A minimum log typically includes:the client socket, qname,
+qclass, qtype
+</li>
+<li>Extensive logging may add:message flags, EDNS content (version,
+cookie presence &amp; type, etc.), the server socket, UDP/TCP,
+arrival time
+</li>
+<li>Extensive logging can elect to not log select queries (e.g.
+queries dropped because of RRL)
+</li>
+</ul>
+</li>
+<li>Query logging generally does not:
+<ul class="org-ul">
+<li>Log responses
+</li>
+<li>Log if multiple outgoing queries were required (e.g. CNAME
+responses, referrals, etc)
+</li>
+<li>Record the time from query arrival until response
+</li>
+<li>Indicate if a query was answered from the cache
+</li>
+<li>Indicate if an RPZ rule was triggered
+</li>
+<li>Indicate if RRL was applied, etc.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-12-2-2" class="outline-4">
+<h4 id="sec-12-2-2"><span class="section-number-4">12.2.2</span> Why Queries Are Logged</h4>
+<div class="outline-text-4" id="text-12-2-2">
+<ul class="org-ul">
+<li>Query logging is implemented for various reasons.
+<ul class="org-ul">
+<li>To meet legal requirements.
+</li>
+<li>Aid in tracing the source of problematic traffic (e.g. access of malware, corporate rule violation, illegal activity, etc).
+</li>
+<li>Debugging (both DNS itself and aiding in other debugging).
+</li>
+<li>Traffic analysis to decide where to add/relocate DNS servers.
+</li>
+<li>Traffic trend analysis can help decide BGP peerings.
+</li>
+<li>Traffic analysis can be used to select to spend advertising dollars.
+</li>
+<li>Traffic analysis can be used for targeting marketing.
+</li>
+<li>Measuring has importance unto itself.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-12-2-3" class="outline-4">
+<h4 id="sec-12-2-3"><span class="section-number-4">12.2.3</span> Server Query Logging</h4>
+<div class="outline-text-4" id="text-12-2-3">
+<ul class="org-ul">
+<li>Query logging slows DNS servers very significantly.
+<ul class="org-ul">
+<li>Tests show a server with 400 kqps drops below 50% performance
+with query logging enabled.
+</li>
+<li>Other tests show a 200% performance drop (a quarter of the rate)
+compared to query logging disabled.
+</li>
+</ul>
+</li>
+<li>In BIND, query logging is disabled by default.
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-12-2-4" class="outline-4">
+<h4 id="sec-12-2-4"><span class="section-number-4">12.2.4</span> BIND Query Logging</h4>
+<div class="outline-text-4" id="text-12-2-4">
+<ul class="org-ul">
+<li>Query logging generates one line for each query received, and can be toggled on/off with:
+<pre class="example">
+% rndc querylog
+</pre>
+</li>
+<li>Useful for troubleshooting, but not if the server is overloaded.
+</li>
+<li>A server receiving 100 qps handles logging without a performance impact.
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-12-2-5" class="outline-4">
+<h4 id="sec-12-2-5"><span class="section-number-4">12.2.5</span> Query Logging: What is Logged</h4>
+<div class="outline-text-4" id="text-12-2-5">
+<ul class="org-ul">
+<li>9.1.X-9.2.X: client, qname, qclass, qtype
+</li>
+<li>9.3.X-9.4.X: Above plus: RD, signed, EDNS
+</li>
+<li>9.5.X-9.6.X: Above plus: DO, CD
+</li>
+<li>9.7.X-9.10.X: Above plus: local address
+</li>
+<li>9.11.X-9.12.X: client, qname, qclass, qtype, RD, signed, <b>EDNS</b> +
+<b>version</b>, <b>TCP</b>, DO, CD, <b>cookies</b>, local address
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-12-2-6" class="outline-4">
+<h4 id="sec-12-2-6"><span class="section-number-4">12.2.6</span> BIND Query Log Configuration</h4>
+<div class="outline-text-4" id="text-12-2-6">
+<ul class="org-ul">
+<li>A query log is shown below from a server with this
+configuration:
+</li>
+</ul>
+<pre class="example">
+logging {
+  channel query_log {
+    file "query_log";
+    print-category yes;   # The print options make each entry
+    print-severity yes;   # of a logged query longer.
+    print-time yes;
+  };
+  &lt;OUTPUT SUPPRESSED&gt;
+  category queries { query_log; };
+  &lt;OUTPUT SUPPRESSED&gt;
+};
+</pre>
+
+<p>
+<img id="query-log" class="img-responsive" src="img/query-log-00.png"></ p><input type="button" onclick="NextPage('query-log','11')" value=">" /><input type="button" onclick="ResetSlides('query-log')" value="O" /><input type="button" onclick="PrevPage('query-log')" value="<" />
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-12-2-7" class="outline-4">
+<h4 id="sec-12-2-7"><span class="section-number-4">12.2.7</span> Query Logging Flags</h4>
+<div class="outline-text-4" id="text-12-2-7">
+<table class="table table-striped table-bordered table-hover table-condensed">
+
+
+<colgroup>
+<col  class="left">
+
+<col  class="left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="text-left">Flag</th>
+<th scope="col" class="text-left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="text-left">+</td>
+<td class="text-left">RD flag set (recursive query)</td>
+</tr>
+
+<tr>
+<td class="text-left">-</td>
+<td class="text-left">RD flag cleared (iterative)</td>
+</tr>
+
+<tr>
+<td class="text-left">T</td>
+<td class="text-left">Query over TCP</td>
+</tr>
+
+<tr>
+<td class="text-left">D</td>
+<td class="text-left">DO flag set (DNSSEC OK)</td>
+</tr>
+
+<tr>
+<td class="text-left">S</td>
+<td class="text-left">Signed query (TSIG)</td>
+</tr>
+
+<tr>
+<td class="text-left">K</td>
+<td class="text-left">Cookie option, but no valid server cookie</td>
+</tr>
+
+<tr>
+<td class="text-left">E(#)</td>
+<td class="text-left">EDNS query &amp; version</td>
+</tr>
+
+<tr>
+<td class="text-left">V</td>
+<td class="text-left">Query with valid server cookie</td>
+</tr>
+</tbody>
+</table>
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Work on the DNS resolver server <code>dnsrNN</code>
+</li>
+<li>Configure query-logging in the BIND 9 configuration file
+<code>named.conf</code>
+</li>
+<li>Check and reload the configuration
+</li>
+<li>Enable query-logging with <code>rndc querylog</code>
+</li>
+<li>Send the query below to your DNS resolver
+<pre class="example">
+dig @dnsrNN.dnslab.org dnssec.works +dnssec +multi
+</pre>
+</li>
+<li>Which query flags do you see in the query logs. Write the answer in the chat.
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-12-3" class="outline-3">
+<h3 id="sec-12-3"><span class="section-number-3">12.3</span> Packet Capture (Passive Replication)</h3>
+<div class="outline-text-3" id="text-12-3">
+</div><div id="outline-container-sec-12-3-1" class="outline-4">
+<h4 id="sec-12-3-1"><span class="section-number-4">12.3.1</span> Packet Capture for Query Logging</h4>
+<div class="outline-text-4" id="text-12-3-1">
+<ul class="org-ul">
+<li>An alternative to server query logging is packet capture.
+</li>
+<li>Packet capture is external of the DNS server.
+<ul class="org-ul">
+<li>It does not slow a server.
+</li>
+<li>It is commonly done with port mirroring.
+</li>
+<li>It is also known as passive replication.
+</li>
+</ul>
+</li>
+<li>Because packets are not the same as DNS messages, packet capture
+has limitations
+</li>
+<li>Packet capture systems work extra for actions that happen
+automatically in a DNS server:
+<ul class="org-ul">
+<li>e.g. DNS message building for IP fragmentation
+</li>
+<li>e.g. DNS message building for TCP streams
+</li>
+</ul>
+</li>
+<li>Information is lost with packet capture.
+<ul class="org-ul">
+<li>e.g. Did the server drop the query?
+</li>
+<li>e.g. Was the query answered from the cache?
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-12-3-2" class="outline-4">
+<h4 id="sec-12-3-2"><span class="section-number-4">12.3.2</span> Server Logging Alternatives</h4>
+<div class="outline-text-4" id="text-12-3-2">
+<ul class="org-ul">
+<li>Packet capture for query logging is commonly in PCAP or PCAPng (next generation) formats.
+<ul class="org-ul">
+<li><code>tcpdump</code> &amp; <code>wireshark</code> can be used for capture, display &amp;
+analysis.
+</li>
+<li>Capture tools specifically designed for DNS offer better
+monitoring and analysis.
+<ul class="org-ul">
+<li>Such tools are outside the scope of this course, but several
+are presented on the next slides.
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>A new RFC 8618 "Compacted-DNS (C-DNS): A Format for DNS Packet
+Capture" offers improvements over PCAP/PCAPng (published September
+2019): <a href="https://tools.ietf.org/html/rfc8618">https://tools.ietf.org/html/rfc8618</a>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-12-3-3" class="outline-4">
+<h4 id="sec-12-3-3"><span class="section-number-4">12.3.3</span> Open Source DNS Packet tools</h4>
+<div class="outline-text-4" id="text-12-3-3">
+<ul class="org-ul">
+<li>DSC (DNS Statistics Collector) is a packet capture and presentation
+tool. (It is used by the root servers.)
+<ul class="org-ul">
+<li><a href="https://www.dns-oarc.net/tools/dsc">https://www.dns-oarc.net/tools/dsc</a>
+</li>
+<li><a href="https://www.caida.org/tools/utilities/dsc/">https://www.caida.org/tools/utilities/dsc/</a>
+</li>
+</ul>
+</li>
+<li>Hedgehog is an alternative to the DSC presenter which can be used
+to display real time statistics for DNS traffic.
+<ul class="org-ul">
+<li><a href="https://github.com/dns-stats/hedgehog">https://github.com/dns-stats/hedgehog</a>
+</li>
+</ul>
+</li>
+<li>DNSCAP is a packet capture tool and presentation used for the DITL
+(Day in The Life of root server) collection.
+<a href="https://www.dns-oarc.net/tools/dnscap">https://www.dns-oarc.net/tools/dnscap</a>
+</li>
+<li>PacketQ (formerly DNS2db) is a PCAP analysis tool: <a href="https://www.dns-oarc.net/tools/packetq">https://www.dns-oarc.net/tools/packetq</a>
+</li>
+<li><code>nmsg</code> pretty prints DNS messages from PCAP files: <a href="https://github.com/farsightsec/nmsg">https://github.com/farsightsec/nmsg</a>
+</li>
+<li><code>drool</code> (DNS Replay Tool) replays DNS packets from a PCAP to a server.
+<ul class="org-ul">
+<li>It can produce high traffic volume and be used to test
+performance under extreme load (e.g DDoS attacks):
+<a href="https://www.dns-oarc.net/tools/drool">https://www.dns-oarc.net/tools/drool</a>
+</li>
+</ul>
+</li>
+<li><code>dnsjit</code> captures, parses and replays DNS.
+<blockquote>
+<p>
+"&#x2026;parts taken from dsc, dnscap, drool&#x2026; script-based engine for
+easy capturing, parsing &amp; statistics gathering&#x2026; also replaying
+DNS traffic."
+</p>
+</blockquote>
+<p>
+<a href="https://www.dns-oarc.net/tools/dnsjit">https://www.dns-oarc.net/tools/dnsjit</a>
+</p>
+</li>
+<li>Various PCAP tools from PowerDNS:
+<ul class="org-ul">
+<li><code>dnsscope</code> generates statistics from a PCAP
+</li>
+<li><code>dnsreplay</code> replays a PCAP's DNS queries
+</li>
+<li><code>dnsscan</code> prints query-type amounts from a PCAP
+</li>
+<li><code>dnswasher</code> - Obviscates client IPs in a PCAP
+</li>
+<li><a href="https://doc.powerdns.com/md/tools/analysis/">https://doc.powerdns.com/md/tools/analysis/</a>
+</li>
+</ul>
+</li>
+<li>Go Language DNS interface: includes message parsing/output:
+<a href="https://github.com/miekg/dns">https://github.com/miekg/dns</a>
+</li>
+<li><code>dnspython</code>: a DNS toolkit for Python: <a href="https://www.dnspython.org">https://www.dnspython.org</a>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-12-3-4" class="outline-4">
+<h4 id="sec-12-3-4"><span class="section-number-4">12.3.4</span> Related DNS Tools</h4>
+<div class="outline-text-4" id="text-12-3-4">
+<ul class="org-ul">
+<li>DNS-OARC develops other tools beyond those listed: <a href="https://www.dns-oarc.net/oarc/software">https://www.dns-oarc.net/oarc/software</a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-12-4" class="outline-3">
+<h3 id="sec-12-4"><span class="section-number-3">12.4</span> DNSTAP</h3>
+<div class="outline-text-3" id="text-12-4">
+<ul class="org-ul">
+<li><i>dnstap</i> is a query logging system integral to a server (e.g. named).
+</li>
+<li>Unlike traditional query logging, it has only a minor effect on
+server performance.
+</li>
+<li>Unlike passive replication (packet capture) it doesn't duplicate
+server work nor is information lost.
+</li>
+<li>In addition to BIND, dnstap is available in many DNS servers.
+</li>
+<li>A DNS server's thread writes to a circular buffer in memory.
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/dnstap-01.png" class="img-responsive" alt="dnstap-01.png">
+</p>
+</figure>
+
+<ul class="org-ul">
+<li>Another server thread reads the buffer and outputs to a UNIX domain
+socket, or to a dnstap formatted file.
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/dnstap-02.png" class="img-responsive" alt="dnstap-02.png">
+</p>
+</figure>
+
+<ul class="org-ul">
+<li>An external process reads from the socket and writes to a file.
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/dnstap-03.png" class="img-responsive" alt="dnstap-03.png">
+</p>
+</figure>
+
+<ul class="org-ul">
+<li>The server will overwrite un-logged queries in the buffer rather than block.
+<ul class="org-ul">
+<li>Some queries may not be logged.
+</li>
+<li>While this may happen on servers under extreme load, it will be rare.
+</li>
+</ul>
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/dnstap-04.png" class="img-responsive" alt="dnstap-04.png">
+</p>
+</figure>
+</div>
+
+<div id="outline-container-sec-12-4-1" class="outline-4">
+<h4 id="sec-12-4-1"><span class="section-number-4">12.4.1</span> DNSTAP in BIND 9</h4>
+<div class="outline-text-4" id="text-12-4-1">
+<ul class="org-ul">
+<li><i>dnstap</i> was first fully available in BIND 9.11.
+<ul class="org-ul">
+<li>(Initial but limited support began with BIND 9.9.8.)
+</li>
+</ul>
+</li>
+<li><i>dnstap</i> must be enabled when BIND is built (<i>dnstap</i> is enabled in
+the BIND 9 binaries from the ISC repositories).
+</li>
+</ul>
+<pre class="example">
+$ ./configure --enable-dnstap [other configure options]
+</pre>
+<ul class="org-ul">
+<li><i>dnstap</i> is dependent on non-ISC software:
+<ol class="org-ol">
+<li>Protocol buffers (<code>protobuf</code>) library (Google)
+</li>
+<li><code>protobuf-c</code> library
+</li>
+<li><code>fstrm</code> (Frame Streams) library (Farsight Security)
+</li>
+</ol>
+</li>
+<li>Without the dependencies, you can't build BIND 9 with dnstap:
+</li>
+</ul>
+<pre class="example">
+$ ./configure --enable-dnstap
+checking build system type... x86_64-unknown-linux-gnu
+checking host system type... x86_64-unknown-linux-gnu
+[...]
+checking for dlsym... yes
+checking for protoc-c... no
+configure: error: The protoc-c program was not found.
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-12-4-2" class="outline-4">
+<h4 id="sec-12-4-2"><span class="section-number-4">12.4.2</span> DNSTAP configuration</h4>
+<div class="outline-text-4" id="text-12-4-2">
+<ul class="org-ul">
+<li>These are the complete dnstap settings.
+</li>
+<li>Just two are required and common: <code>dnstap</code> &amp; <code>dnstap-output</code>
+</li>
+</ul>
+<pre class="example">
+options {
+  dnstap {
+    (all|auth|client|forwarder|resolver) [(query|response)]; ... };
+  dnstap-output (file|unix) quoted_string
+    [size (unlimited|size)]
+    [versions(unlimited|integer)]
+    [suffix ( increment | timestamp ) ];
+  dnstap-identity (quoted_string|none|hostname );
+  dnstap-version ( quoted_string | none );
+
+  fstrm-set-buffer-hint integer;
+  fstrm-set-flush-timeout integer;
+  fstrm-set-input-queue-size integer;
+  fstrm-set-output-notify-threshold integer;
+  fstrm-set-output-queue-model ( mpsc | spsc );
+  fstrm-set-output-queue-size integer;
+  fstrm-set-reopen-interval integer;
+};
+</pre>
+</div>
+<ol class="org-ol"><li><a id="sec-12-4-2-1" name="sec-12-4-2-1"></a>options {dnstap{}}<br ><div class="outline-text-5" id="text-12-4-2-1">
+<pre class="example">
+# dnstap { (all|auth|client|forwarder|resolver) [(query|response)]; ...};
+# dnstap {all};
+dnstap { client; resolver query; };
+</pre>
+<ul class="org-ul">
+<li>Enable dnstap &amp; select message types to log.
+<ul class="org-ul">
+<li>Default: both queries and responses are logged.
+</li>
+<li><code>client</code>: arriving queries except for AXFR/IXFR generally matches
+the common understanding of query logging.
+</li>
+<li><code>resolver</code>: outgoing queries from a DNS Resolver server
+</li>
+<li><code>auth</code>: arriving AXFR/IXFR queries (even for DNS Resolver
+servers)
+</li>
+<li><code>forwarder</code>: outgoing queries to a forwarder from a DNS Resolver
+server
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</li>
+<li><a id="sec-12-4-2-2" name="sec-12-4-2-2"></a>options {dnstap-output}<br ><div class="outline-text-5" id="text-12-4-2-2">
+<pre class="example">
+/* dnstap-output (file|unix) quoted_string
+   [size (unlimited|size)]
+   [versions(unlimited|integer)]
+   [suffix ( increment | timestamp ) ]; */
+ dnstap-output file "tap.data" size 1M versions 5 suffix timestamp;
+</pre>
+<ul class="org-ul">
+<li><code>dnstap-output</code>: select a UNIX domain socket or file for output.
+</li>
+<li>BIND does not provide a listener.
+<ul class="org-ul">
+<li><code>fstrm_capture</code> is a socket listener program from the fstrm
+library.
+</li>
+</ul>
+</li>
+<li>Size, versions &amp; suffix are only applicable for file output.
+</li>
+<li>The default is to allow the file to grow indefinitely.
+<ul class="org-ul">
+<li>If set, when size is reached, the file is rolled.
+</li>
+<li><code>suffix</code> defaults to <code>increment</code>: 0, 1, 2, 3, &#x2026;
+</li>
+<li><code>versions</code> is the number of older versions to keep.
+</li>
+</ul>
+</li>
+<li><code>dnstap-output</code> cannot be used in a view.
+</li>
+<li><code>dnstap-output</code> is not reread by: <code>rndc reconfig</code> (A noteworthy
+anomaly).
+</li>
+</ul>
+</div>
+</li>
+<li><a id="sec-12-4-2-3" name="sec-12-4-2-3"></a>options{dnstap-identity &amp; dnstap-version}<br ><div class="outline-text-5" id="text-12-4-2-3">
+<pre class="example">
+# dnstap-identity (quoted_string|none|hostname );
+# dnstap-identity "FunFunFun";
+dnstap-identity hostname;  # The default
+</pre>
+<ul class="org-ul">
+<li><code>dnstap-identity</code>: a string sent in dnstap messages: <code>hostname</code> is
+the default.
+</li>
+</ul>
+<pre class="example">
+# dnstap-version ( quoted_string | none );
+# dnstap-version "BIND 4.3 (just kidding!)";
+</pre>
+<ul class="org-ul">
+<li><code>dnstap-version</code>: a string sent in dnstap messages: the BIND
+version is the default.
+</li>
+</ul>
+</div>
+</li>
+<li><a id="sec-12-4-2-4" name="sec-12-4-2-4"></a>options {fstrm-set-*}<br ><div class="outline-text-5" id="text-12-4-2-4">
+<pre class="example">
+options {
+  fstrm-set-buffer-hint integer;
+  fstrm-set-flush-timeout integer;
+  fstrm-set-input-queue-size integer;
+  fstrm-set-output-notify-threshold integer;
+  fstrm-set-output-queue-model ( mpsc | spsc );
+  fstrm-set-output-queue-size integer;
+  fstrm-set-reopen-interval integer;
+};
+</pre>
+<ul class="org-ul">
+<li><code>fstrm</code> library options (<a href="https://github.com/farsightsec/fstrm">https://github.com/farsightsec/fstrm</a>) tune
+performance or prevent data loss.
+<ul class="org-ul">
+<li>The BIND ARM has more information.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</li></ol>
+</div>
+<div id="outline-container-sec-12-4-3" class="outline-4">
+<h4 id="sec-12-4-3"><span class="section-number-4">12.4.3</span> dnstap-read</h4>
+<div class="outline-text-4" id="text-12-4-3">
+<ul class="org-ul">
+<li><code>dnstap-read</code> is a BIND tool for printing the content of a dnstap output file as text.
+<ul class="org-ul">
+<li>Default: one line is printed for each log entry.
+</li>
+<li><code>-p</code>: Prints the entire DNS message.
+</li>
+<li><code>-y</code>: Print the entire message in YAML format.
+</li>
+<li>See the ARM or man page for other options.
+</li>
+</ul>
+</li>
+<li>Various other tools are available for reading dnstap output,
+including several that are packaged with the fstrm library.
+</li>
+<li>The following examples show <b>dnstap</b> logging direct to a file from
+an DNS Resolver server with this configuration and with an empty
+cache:
+</li>
+</ul>
+<pre class="example">
+options {
+ [...]
+ dnstap {all;};
+ dnstap-output file "tap.data";
+ [...]
+ };
+</pre>
+
+
+<figure>
+<p><img src="./img/dnstap-05.png" class="img-responsive" alt="dnstap-05.png">
+</p>
+</figure>
+
+<ul class="org-ul">
+<li>Query: <code>dig AAAA www.ripe.net</code>
+</li>
+<li>message types:
+<table class="table table-striped table-bordered table-hover table-condensed">
+
+
+<colgroup>
+<col  class="left">
+
+<col  class="left">
+</colgroup>
+<tbody>
+<tr>
+<td class="text-left">CQ</td>
+<td class="text-left">Client Query</td>
+</tr>
+
+<tr>
+<td class="text-left">CR</td>
+<td class="text-left">Client Response</td>
+</tr>
+
+<tr>
+<td class="text-left">RQ</td>
+<td class="text-left">Resolver Query</td>
+</tr>
+
+<tr>
+<td class="text-left">RR</td>
+<td class="text-left">Resolver Response</td>
+</tr>
+
+<tr>
+<td class="text-left">AQ</td>
+<td class="text-left">Auth Query</td>
+</tr>
+
+<tr>
+<td class="text-left">AR</td>
+<td class="text-left">Auth Response</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+
+<pre class="example">
+% dnstap-read tap.data | grep AAAA
+01-Dec-2018 19:24:24.381 CQ 10.156.0.2:33879 -&gt; 10.156.0.2:0 UDP 53b www.ripe.net/IN/AAAA
+01-Dec-2018 19:24:24.471 RQ 10.156.0.2:52320 -&gt; 202.12.31.53:53 UDP 53b www.ripe.net/IN/AAAA
+01-Dec-2018 19:24:24.702 RR 10.156.0.2:52320 &lt;- 202.12.31.53:53 UDP 265b www.ripe.net/IN/AAAA
+01-Dec-2018 19:24:25.249 CR 10.156.0.2:33879 &lt;- 10.156.0.2:0 UDP 97b www.ripe.net/IN/AAAA
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-12-4-4" class="outline-4">
+<h4 id="sec-12-4-4"><span class="section-number-4">12.4.4</span> Example:dnstap-read -p</h4>
+<div class="outline-text-4" id="text-12-4-4">
+<ul class="org-ul">
+<li>This is the final dnstap log entry from the previous example, but
+showing the entire DNS message (<code>dnstap -p</code> option).Notice that the
+formatting is similar to dig's.
+</li>
+</ul>
+<pre class="example">
+% dnstap-read -p tap.data | grep -A11 19:24:25.249.CR
+
+01-Dec-2018 19:24:25.249 CR 10.156.0.2:33879 &lt;- 10.156.0.2:0 UDP 97b www.ripe.net/IN/AAAA
+
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id:  25072
+;; flags: qr rd ra ad; QUESTION: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+; COOKIE: fc8ba016d9bcee6268e76d975c02dfe96b3eb57323196b28
+;; QUESTION SECTION:
+;www.ripe.net.			IN	AAAA
+;; ANSWER SECTION:
+www.ripe.net.		21600	IN	AAAA	2001:67c:2e8:22::c100:68b
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-12-4-5" class="outline-4">
+<h4 id="sec-12-4-5"><span class="section-number-4">12.4.5</span> rndc &amp; dnstap</h4>
+<div class="outline-text-4" id="text-12-4-5">
+<ul class="org-ul">
+<li>The circular buffer is written asynchronously.
+</li>
+<li>rndc can force the buffer to be written (file only).
+<ul class="org-ul">
+<li>This rotates the file, even if named is not configured to keep
+multiple versions.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+% ls -ltr tap.data*
+-rw-r--r--. 1 root root 163840 Dec  1 21:17 tap.data
+
+% rndc dnstap -reopen
+
+% ls -ltr tap.data*
+-rw-r--r--. 1 root root 165625 Dec  1 21:18 tap.data.0
+-rw-r--r--. 1 root root      0 Dec  1 21:18 tap.data
+</pre>
+</div>
+</div>
+
+<div id="outline-container-sec-12-4-6" class="outline-4">
+<h4 id="sec-12-4-6"><span class="section-number-4">12.4.6</span> Writing into a Socket</h4>
+<div class="outline-text-4" id="text-12-4-6">
+<ul class="org-ul">
+<li>Writing a socket, instead of a file, makes no difference for
+working with dnstap output, but requires a socket reader.
+</li>
+</ul>
+<pre class="example">
+options {
+ [...]
+ dnstap {all;};
+ dnstap-output unix "/etc/namedb/dnstap.sock";
+ [...]
+};
+</pre>
+<ul class="org-ul">
+<li>Start the socket listener before starting named.
+</li>
+<li>Here we use fstrm<sub>capture</sub>, a socket reader packaged with the <code>fstrm</code>
+library.
+</li>
+</ul>
+<pre class="example">
+% fstrm_capture -t protobuf:dnstap.Dnstap  \
+                -u /etc/namedb/dnstap.sock \
+                -w /etc/namedb/dnstap.out &amp;
+[1] 22935
+fstrm_capture: opening Unix socket path dnstap.sock
+fstrm_capture: opened output file dnstap.out
+#
+% ls -l /etc/namedb/dnstap.sock
+srwxr-xr-x. 1 root root 0 Dec  9 20:20 /etc/namedb/dnstap.sock
+</pre>
+<ul class="org-ul">
+<li><code>-t</code> (&#x2013;type): The content-type to receive from the socket &amp; write
+to the output file
+<ul class="org-ul">
+<li>(protobuf:dnstap.Dnstap is the only value the course developer has
+seen used.)
+</li>
+</ul>
+</li>
+<li><code>-u</code> (&#x2013;unix): Specify the UNIX domain socket.
+</li>
+<li><code>-w</code> (&#x2013;write): Data from the socket is written to this file (in
+dnstap data format).
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
 </div></div></div>
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-30 Wed 13:53</p>
+<p class="date">Created: 2024-10-30 Wed 15:10</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
