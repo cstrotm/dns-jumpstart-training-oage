@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-30 Wed 13:22 -->
+<!-- 2024-10-30 Wed 13:25 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -82,6 +82,25 @@ $(function() {
 <li><a href="#sec-10-2">10.2. minimal responses and minimal any</a></li>
 <li><a href="#sec-10-3">10.3. Empty Zones - Protecting the Internet from Useless Queries</a></li>
 <li><a href="#sec-10-4">10.4. Prefetch</a></li>
+</ul>
+</li>
+<li><a href="#sec-11">11. 'dig'ing deeper</a>
+<ul class="nav">
+<li><a href="#sec-11-1">11.1. dig</a></li>
+<li><a href="#sec-11-2">11.2. dig Query Options</a></li>
+<li><a href="#sec-11-3">11.3. dig +[no]cmd</a></li>
+<li><a href="#sec-11-4">11.4. dig +[no]stats</a></li>
+<li><a href="#sec-11-5">11.5. dig +nocmd +nostats</a></li>
+<li><a href="#sec-11-6">11.6. dig +comment</a></li>
+<li><a href="#sec-11-7">11.7. dig +comment</a></li>
+<li><a href="#sec-11-8">11.8. dig +question</a></li>
+<li><a href="#sec-11-9">11.9. dig +answer</a></li>
+<li><a href="#sec-11-10">11.10. dig +authority</a></li>
+<li><a href="#sec-11-11">11.11. dig +additional</a></li>
+<li><a href="#sec-11-12">11.12. dig +qr</a></li>
+<li><a href="#sec-11-13">11.13. dig +short</a></li>
+<li><a href="#sec-11-14">11.14. Truncate &amp; dig +ignore</a></li>
+<li><a href="#sec-11-15">11.15. DNSSEC troubleshooting</a></li>
 </ul>
 </li>
 </ul>
@@ -2427,11 +2446,611 @@ will be silently increased.
 </div>
 </div>
 </div>
+<div id="outline-container-sec-11" class="outline-2">
+<h2 id="sec-11"><span class="section-number-2">11</span> 'dig'ing deeper</h2>
+<div class="outline-text-2" id="text-11">
+</div><div id="outline-container-sec-11-1" class="outline-3">
+<h3 id="sec-11-1"><span class="section-number-3">11.1</span> dig</h3>
+<div class="outline-text-3" id="text-11-1">
+<p>
+dig's default output is divided into seven sections.
+Not every section is shown with each dig command.
+</p>
+<ul class="org-ul">
+<li>cmd (initial comment)
+</li>
+<li>comment
+</li>
+<li>question (the query)
+</li>
+<li>answer
+</li>
+<li>authority
+</li>
+<li>additional
+</li>
+<li>stats
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-11-2" class="outline-3">
+<h3 id="sec-11-2"><span class="section-number-3">11.2</span> dig Query Options</h3>
+<div class="outline-text-3" id="text-11-2">
+<ul class="org-ul">
+<li>The sections are toggled to appear or be hidden with query options.
+<ul class="org-ul">
+<li>Query options begin with a <code>+</code>.
+</li>
+<li>All query options can be disabled with <code>+noall</code>, then individual
+options can be re-enabled.
+<pre class="example">
+$ dig +noall server01.dnslab.org
+</pre>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-11-3" class="outline-3">
+<h3 id="sec-11-3"><span class="section-number-3">11.3</span> dig +[no]cmd</h3>
+<div class="outline-text-3" id="text-11-3">
+<ul class="org-ul">
+<li>The initial comment (cmd) section shows the dig version number and query options.
+<pre class="example">
+$ dig +noall +cmd server01.dnslab.org
+; &lt;&lt;&gt;&gt; DiG 9.10.3 &lt;&lt;&gt;&gt; server01.dnslab.org +noall +cmd
+;; global options: +cmd
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-11-4" class="outline-3">
+<h3 id="sec-11-4"><span class="section-number-3">11.4</span> dig +[no]stats</h3>
+<div class="outline-text-3" id="text-11-4">
+<ul class="org-ul">
+<li><b>stats</b> is the last section displayed.
+<ul class="org-ul">
+<li>It shows the time for the query, the server queried, and the
+total size of the response packet.
+<pre class="example">
+$ dig +noall server01.dnslab.org +stats
+;; Query time: 7 msec
+;; SERVER: 192.168.53.251#53(192.168.53.251)
+;; WHEN: Wed Nov 25 12:55:36 UTC 2015
+;; MSG SIZE  rcvd: 92
+</pre>
+</li>
+</ul>
+</li>
+</ul>
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Run a <code>dig +noall +answer +stats menandmice.com</code>
+What could be reasons for <code>dig</code> to output <code>SERVER</code> and a date/time stamp
+in the output?
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-11-5" class="outline-3">
+<h3 id="sec-11-5"><span class="section-number-3">11.5</span> dig +nocmd +nostats</h3>
+<div class="outline-text-3" id="text-11-5">
+<ul class="org-ul">
+<li>The output of dig gets considerably smaller without the first and
+last sections (initial comment &amp; stats).
+<pre class="example">
+$ dig +nocmd +nostats ns01a.dnslab.org
+;; Got answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 21736
+;; flags: qr rd ra ad; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 512
+;; QUESTION SECTION:
+;ns01a.dnslab.org.                        IN      A
+
+;; ANSWER SECTION:
+ns01a.dnslab.org.         60      IN      A       178.128.233.110
+</pre>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-11-6" class="outline-3">
+<h3 id="sec-11-6"><span class="section-number-3">11.6</span> dig +comment</h3>
+<div class="outline-text-3" id="text-11-6">
+<ul class="org-ul">
+<li>The comment section comes after the cmd (initial comment) section.
+<ul class="org-ul">
+<li>It shows all message fields except the four with RRs.
+</li>
+<li>RCODE is listed as status.
+<pre class="example">
+$ dig +noall  server01.dnslab.org +comment
+;; Got answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 42739
+;; flags: qr rd ra ad; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 512
+</pre>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-11-7" class="outline-3">
+<h3 id="sec-11-7"><span class="section-number-3">11.7</span> dig +comment</h3>
+<div class="outline-text-3" id="text-11-7">
+<ul class="org-ul">
+<li>The option <code>+nocomment</code> removes the <b>comments</b> section, and comments
+before other sections.
+<pre class="example">
+$ dig +nocmd +nostats ns01a.dnslab.org | grep SECTION
+;; OPT PSEUDOSECTION:
+;; QUESTION SECTION:
+;; ANSWER SECTION:
+
+$ dig +nocmd +nostats  ns01a.dnslab.org +nocomment | grep SECTION
+$
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-11-8" class="outline-3">
+<h3 id="sec-11-8"><span class="section-number-3">11.8</span> dig +question</h3>
+<div class="outline-text-3" id="text-11-8">
+<ul class="org-ul">
+<li>The <b>question</b> section shows the query as it appears in the response message.
+<pre class="example">
+$ dig +noall +question ns01a.dnslab.org
+;ns01a.dnslab.org.                        IN      A
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-11-9" class="outline-3">
+<h3 id="sec-11-9"><span class="section-number-3">11.9</span> dig +answer</h3>
+<div class="outline-text-3" id="text-11-9">
+<ul class="org-ul">
+<li>The <b>answer</b> section shows the query response in standard Master
+File Format.
+<pre class="example">
+$ dig +noall +answer ns01a.dnslab.org
+ns01a.dnslab.org.         36      IN      A       178.128.233.110
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-11-10" class="outline-3">
+<h3 id="sec-11-10"><span class="section-number-3">11.10</span> dig +authority</h3>
+<div class="outline-text-3" id="text-11-10">
+<ul class="org-ul">
+<li>The <b>authority</b> section shows the authority section in the query
+response.
+<pre class="example">
+$ dig +noall +authority ns01a.zone100.dnslab.org @localhost
+zone100.dnslab.org.        30      IN      SOA     ns01a.dnslab.org. hostmaster.zone100.dnslab.org. 1001 3600 1800 3542400 30
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-11-11" class="outline-3">
+<h3 id="sec-11-11"><span class="section-number-3">11.11</span> dig +additional</h3>
+<div class="outline-text-3" id="text-11-11">
+<ul class="org-ul">
+<li>The <b>additional</b> section shows the additional section in the query response.
+</li>
+<li>The <code>OPT</code> pseudo-header for EDNS is sent in the additional section,
+but not displayed there by dig.
+<ul class="org-ul">
+<li>It is in the comments section.
+<pre class="example">
+$ dig +noall +additional  ns01a.dnslab.org
+$
+</pre>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-11-12" class="outline-3">
+<h3 id="sec-11-12"><span class="section-number-3">11.12</span> dig +qr</h3>
+<div class="outline-text-3" id="text-11-12">
+<ul class="org-ul">
+<li>By default, <code>dig</code> shows the response message.
+<ul class="org-ul">
+<li>The <code>+qr</code> option adds the outgoing query.
+</li>
+<li>The query is shown after the text: <code>"Sending:"</code>
+<pre class="example">
+$ dig +qr ns01a.dnslab.org
+; &lt;&lt;&gt;&gt; DiG 9.11.13-RedHat-9.11.13-6.el8_2.1 &lt;&lt;&gt;&gt; +qr ns01a.dnslab.org
+;; global options: +cmd
+;; Sending:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 57808
+;; flags: rd ad; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+; COOKIE: 7c29201b7c89b54e
+;; QUESTION SECTION:
+;ns01a.dnslab.org.                        IN      A
+
+;; QUERY SIZE: 55
+
+;; Got answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 57808
+;; flags: qr rd ra ad; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 512
+;; QUESTION SECTION:
+&lt;OUTPUT SUPPRESSED&gt;
+</pre>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-11-13" class="outline-3">
+<h3 id="sec-11-13"><span class="section-number-3">11.13</span> dig +short</h3>
+<div class="outline-text-3" id="text-11-13">
+<ul class="org-ul">
+<li><code>+short</code> disables the default output. It shows only the response's RDATA.
+<ul class="org-ul">
+<li>Contrast <code>+short</code>, to <code>+answer</code>, which displays the entire RRSet.
+<pre class="example">
+$ dig +short ns01a.dnslab.org
+192.168.53.101
+
+$ dig +noall +answer ns01a.dnslab.org
+ns01a.dnslab.org.         30      IN      A       192.168.53.101
+</pre>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-11-14" class="outline-3">
+<h3 id="sec-11-14"><span class="section-number-3">11.14</span> Truncate &amp; dig +ignore</h3>
+<div class="outline-text-3" id="text-11-14">
+<ul class="org-ul">
+<li>The response displayed by <code>dig</code> is the last received.
+<ul class="org-ul">
+<li>If a message returns with <code>tc</code> set, the query is resent with TCP.
+(Therefore, <code>tc</code> is rarely seen in dig output.)
+</li>
+<li>The <code>+ignore</code> flag tells dig to not re-query with TCP (Example below.)
+</li>
+<li>When <code>dig</code> re-queries with TCP, a message is displayed that can't be suppressed.
+<pre class="example">
+$ dig +noall dnslab.org DNSKEY +dnssec
+;; Truncated, retrying in TCP mode.
+$
+</pre>
+</li>
+</ul>
+</li>
+<li>The response is too big, but dig doesn't re-query with TCP.
+<pre class="example">
+$ dig dnslab.org dnskey +dnssec +ignore
+; &lt;&lt;&gt;&gt; DiG 9.9.4 &lt;&lt;&gt;&gt; dnslab.org dnskey +dns +ignore
+;; global options: +cmd
+;; Got answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 20521
+;; flags: qr tc rd ra ad; QUERY: 1, ANSWER: 0, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags: do; udp: 800
+
+;; QUESTION SECTION:
+;dnslab.org.			IN	DNSKEY
+
+;; Query time: 9 msec
+;; SERVER: 192.168.53.251#53(192.168.53.251)
+;; WHEN: Wed Nov 25 14:05:05 UTC 2015
+;; MSG SIZE  rcvd: 39
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-11-15" class="outline-3">
+<h3 id="sec-11-15"><span class="section-number-3">11.15</span> DNSSEC troubleshooting</h3>
+<div class="outline-text-3" id="text-11-15">
+</div><div id="outline-container-sec-11-15-1" class="outline-4">
+<h4 id="sec-11-15-1"><span class="section-number-4">11.15.1</span> Checking DNS resolution issues</h4>
+<div class="outline-text-4" id="text-11-15-1">
+</div><ol class="org-ol"><li><a id="sec-11-15-1-1" name="sec-11-15-1-1"></a>dig<br ><div class="outline-text-5" id="text-11-15-1-1">
+<p>
+The DNS name resolution tool <code>dig</code> can be used to test the general
+function of a DNS resolver, or to test if an error condition exist at
+the remote DNS authoritative servers of a domain.
+</p>
+</div>
+<ol class="org-ol"><li><a id="sec-11-15-1-1-1" name="sec-11-15-1-1-1"></a>Testing one DNS resolver over UDP<br ><div class="outline-text-6" id="text-11-15-1-1-1">
+<p>
+To test the general connectivity and operation of a DNS resolver, a
+query for well known DNS data can be sent, such as for the list of
+name-server (NS records) of the root zone <code>"."</code>. The answer should contain
+the list of all 13 root name server in the Internet (with the names
+<code>a-m.root-servers.net</code>)
+</p>
+
+<pre class="example">
+$ dig @IP-of-DNS-resolver NS .
+</pre>
+
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>what are reasons we recommend using the IP address of a resolver instead of its
+name?
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</li>
+
+<li><a id="sec-11-15-1-1-2" name="sec-11-15-1-1-2"></a>Testing one DNS resolver over TCP<br ><div class="outline-text-6" id="text-11-15-1-1-2">
+<p>
+The DNS resolver should also be reachable over TCP, to send a query
+via TCP the flag <code>+tcp</code> has to be appended to the query
+</p>
+
+<pre class="example">
+$ dig @IP-of-DNS-resolver NS . +tcp
+</pre>
+
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>you can save 33% typing by using <code>+vc</code> instead of <code>+tcp</code>. What
+does <code>vc</code> do? Check the manual page for <code>dig(1)</code>.
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</li>
+
+<li><a id="sec-11-15-1-1-3" name="sec-11-15-1-1-3"></a>Testing reachability of all authoritative DNS servers<br ><div class="outline-text-6" id="text-11-15-1-1-3">
+<p>
+The <code>dig</code> function <code>+nssearch</code> will first query all NS records for a
+given domain and then will try to query directly (without going to a
+DNS-resolver) the authoritative DNS servers of that domain:
+</p>
+<pre class="example">
+$ dig @IP-of-DNS-resolver example.com +nssearch
+</pre>
+<p>
+The function will print out the SOA record of the zone (here
+<code>example.com</code>) for each DNS server that has send an answer to the
+query, including the SOA serial, the IPv4 and/or IPv6 address and the
+round-trip-time (RTT) of the query.
+</p>
+
+<p>
+All SOA serial numbers should show the same number, else there might
+be an issue with zone synchronization via zone transfer which might be
+a possible cause for DNS lookup problems.
+</p>
+
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>which type of DNS servers (authoritative, recursive, primary, secondary)
+are at fault if the SOA serial numbers of a zone are not in sync?
+Who can correct the fault?
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</li>
+<li><a id="sec-11-15-1-1-4" name="sec-11-15-1-1-4"></a>Testing the resolution chain<br ><div class="outline-text-6" id="text-11-15-1-1-4">
+<p>
+The function <code>+trace</code> in <code>dig</code> will trace the DNS name resolution
+starting from the root DNS server system down to the requested name.
+</p>
+<pre class="example">
+$ dig @IP-of-DNS-resolver example.com +trace
+</pre>
+<p>
+Only the very first query to find the root-server addresses will be
+done towards the DNS resolver given in the command, all other queries
+will be sent directly to the DNS resolver. This function tests and
+prints one of usually many possible DNS resolution paths. A successful
+return of the command does not indicate that the resolution path is
+without errors, it is only an indication that at least one successful
+path exists.
+</p>
+</div>
+</li>
+<li><a id="sec-11-15-1-1-5" name="sec-11-15-1-1-5"></a>Testing for DNSSEC validation issues<br ><div class="outline-text-6" id="text-11-15-1-1-5">
+<p>
+If a DNS query returns a <code>SERVFAIL</code> answer, it can be a DNSSEC
+validation issue at the DNS resolver, or it can be some kind of server
+malfunction on the DNS resolver or the remote authoritative server.
+</p>
+
+<p>
+In order the check for DNSSEC validation issues, the administrator can
+send a DNS query with the <code>+cd</code> flag (Checking Disabled). With this
+flag set, the DNS resolver will skip DNSSEC validation and will return
+the DNS data to <code>dig</code> even in case the DNSSEC validation would fail.
+</p>
+
+<p>
+So if a DNS query returns data when <code>+cd</code> is set, but returns
+<code>SERVFAIL</code> when <code>+cd</code> is not set, this indicates a DNSSEC validation
+issue. If the answer is always <code>SERVFAIL</code>, it is some other kind
+of problem (usually not DNSSEC).
+</p>
+</div>
+</li></ol>
+</li>
+
+<li><a id="sec-11-15-1-2" name="sec-11-15-1-2"></a>External web services to check DNS<br ><div class="outline-text-5" id="text-11-15-1-2">
+<p>
+Several website services exist that help DNS administrators to check
+the health of a DNS system
+</p>
+</div>
+<ol class="org-ol"><li><a id="sec-11-15-1-2-1" name="sec-11-15-1-2-1"></a>Zonemaster<br ><div class="outline-text-6" id="text-11-15-1-2-1">
+<p>
+The website <a href="https://zonemaster.net">Zonemaster https://zonemaster.net</a> is a collaboration
+between the French TLD registry Afnic and the Swedish registry IIS.
+The website takes a domain name and will generate a report of errors
+and best practice recommendations of the setup of this domain name.
+</p>
+</div>
+</li>
+<li><a id="sec-11-15-1-2-2" name="sec-11-15-1-2-2"></a>DNSViz<br ><div class="outline-text-6" id="text-11-15-1-2-2">
+<p>
+<a href="https://dnsviz.net">DNSViz https://dnsviz.net</a> is a tool for visualizing the
+status of a DNS zone. It provides a visual analysis of the DNSSEC
+authentication chain for a domain name and its resolution path in the DNS
+namespace, and it lists configuration errors detected by the tool.
+</p>
+</div>
+</li></ol>
+</li></ol>
+</div>
+<div id="outline-container-sec-11-15-2" class="outline-4">
+<h4 id="sec-11-15-2"><span class="section-number-4">11.15.2</span> Looking into DNSSEC validation issues</h4>
+<div class="outline-text-4" id="text-11-15-2">
+<p>
+DNSEC validation issues are often a problem with misconfiguration at
+the authoritative DNS server side of the domain, not an issue of the
+DNS resolver system. However to be able to debug DNSSEC issues, for
+example to decide if an NTA (negative trust anchor) should be inserted
+into the DNS resolver system to temporarily disable DNSSEC validation
+for a specific domain, the DNSSEC validation issue should be
+investigated first.
+</p>
+</div>
+<ol class="org-ol"><li><a id="sec-11-15-2-1" name="sec-11-15-2-1"></a>DNSSEC validation troubleshooting with "delv"<br ><div class="outline-text-5" id="text-11-15-2-1">
+<p>
+The tool <code>delv</code> is part of the BIND 9 DNS server and implements a full
+DNS resolver and DNSSEC validator inside the command line tool. This
+tool works very similarly to <code>dig</code> (and shares the same command line
+syntax), but where <code>dig</code> always needs a DNS resolver to get the DNS
+information, <code>delv</code> can query the data and can validate the DNSSEC
+information itself.
+</p>
+</div>
+</li>
+<li><a id="sec-11-15-2-2" name="sec-11-15-2-2"></a>Message trace<br ><div class="outline-text-5" id="text-11-15-2-2">
+<p>
+The flag <code>+mtrace</code> enables the message tracing in <code>delv</code>, the tool
+will print all DNS queries and answers during the processing of the
+query.
+</p>
+<pre class="example">
+$ delv example.com +mtrace
+</pre>
+</div>
+</li>
+
+<li><a id="sec-11-15-2-3" name="sec-11-15-2-3"></a>Validation trace<br ><div class="outline-text-5" id="text-11-15-2-3">
+<p>
+The flag <code>+vtrace</code> will print a debug trace of all DNSSEC validation
+steps the tool will do in order to validate the received DNS answers
+</p>
+<pre class="example">
+$ delv example.com +vtrace
+</pre>
+</div>
+</li>
+<li><a id="sec-11-15-2-4" name="sec-11-15-2-4"></a>Name server mode (BIND 9.20+)<br ><div class="outline-text-5" id="text-11-15-2-4">
+<ul class="org-ul">
+<li>The new command-line delv +ns option activates name server mode, to
+more accurately reproduce the behavior of named when resolving a
+query. In this mode, delv uses an internal recursive resolver
+rather than an external server. All messages sent and received
+during the resolution and validation process are logged. This can
+be used in place of dig +trace. 
+<pre class="example">
+% delv +ns dnssec.works | less
+</pre>
+</li>
+</ul>
+</div>
+</li>
+<li><a id="sec-11-15-2-5" name="sec-11-15-2-5"></a>DNSSEC path validation with drill<br ><div class="outline-text-5" id="text-11-15-2-5">
+<p>
+The tool <code>drill</code> is part of the LDNS tools (Debian/Ubuntu package
+<code>ldnsutils</code>) and is a <code>dig</code> lookalike tool with additional
+features. One notable feature is the function to trace the DNSSEC
+validation and to print the DNSSEC chain-of-trust together with the
+DNSSEC key information.
+</p>
+
+<p>
+<code>drill</code> requires the current DNSSEC root trust anchor in a file to be
+able to work. This trust anchor can be received with <code>drill</code>, but also
+with <code>dig</code> or <code>delve</code>:
+</p>
+<pre class="example">
+$ dig @a.root-servers.net . DNSKEY | grep 257 &gt; root.key
+</pre>
+<p>
+This DNSSEC root trust-anchor key can be used to do a DNSSEC chain
+chase with <code>drill</code>:
+</p>
+<pre class="example">
+$ drill -SD -k root.key example.com
+</pre>
+
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>In the example above we fetched the root DNSKEY with <code>dig</code>.
+Is this method for obtaining the root DNSKEY record foolproof,
+and do you consider it secure?
+Write answers in the chat.
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</li></ol>
+</div>
+</div>
+</div>
 </div></div></div>
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-30 Wed 13:22</p>
+<p class="date">Created: 2024-10-30 Wed 13:25</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
