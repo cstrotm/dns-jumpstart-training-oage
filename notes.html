@@ -1,0 +1,2434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
+<!-- 2024-10-30 Wed 11:53 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="Org-mode">
+<meta name="author" content="BlueCat Learning Team">
+<link href="css/bootstrap.css" rel="stylesheet"><link href="css/training.css" rel="stylesheet"><script src="js/jquery.js"></script><script src="js/bootstrap.js"></script><script src="js/anim.js"></script>
+<script>
+$(function() {
+    'use strict';
+
+    $('.bs-docs-sidebar li').first().addClass('active');
+
+    $(document.body).scrollspy({target: '.bs-docs-sidebar'});
+
+    $('.bs-docs-sidebar').affix();
+});
+</script>
+</head>
+<body>
+<div id="content" class="container">
+<div class="row"><div class="col-md-3 col-md-push-9"><nav id="table-of-contents">
+<div id="text-table-of-contents" class="bs-docs-sidebar">
+<ul class="nav">
+<li><a href="#sec-1">1. Course Notes and exercises</a>
+<ul class="nav">
+<li><a href="#sec-1-1">1.1. Introduction</a></li>
+<li><a href="#sec-1-2">1.2. Virtual machines for this lab</a></li>
+<li><a href="#sec-1-3">1.3. Access to the lab  machines</a></li>
+</ul>
+</li>
+<li><a href="#sec-2">2. New terminology used in DNS &amp; BIND</a></li>
+<li><a href="#sec-3">3. Building the authoritative DNS server</a>
+<ul class="nav">
+<li><a href="#sec-3-1">3.1. Enable ISC BIND 9 repository for Enterprise Linux 9</a></li>
+<li><a href="#sec-3-2">3.2. Installing BIND 9.20</a></li>
+<li><a href="#sec-3-3">3.3. Solution "Building an authoritative DNS Server":</a></li>
+<li><a href="#sec-3-4">3.4. Create a primary zone</a></li>
+<li><a href="#sec-3-5">3.5. Register the zone on a secondary server</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4. A quick look at DNSSEC</a>
+<ul class="nav">
+<li><a href="#sec-4-1">4.1. DNS Security (or lack of)</a></li>
+<li><a href="#sec-4-2">4.2. DNSSEC</a></li>
+<li><a href="#sec-4-3">4.3. The chain of trust in DNS</a></li>
+</ul>
+</li>
+<li><a href="#sec-5">5. DNSSEC in a nutshell</a>
+<ul class="nav">
+<li><a href="#sec-5-1">5.1. DNSSEC key algorithms</a></li>
+<li><a href="#sec-5-2">5.2. DNSSEC records</a></li>
+</ul>
+</li>
+<li><a href="#sec-6">6. DNSSEC signing and validation</a></li>
+<li><a href="#sec-7">7. DNSSEC validation (simplified)</a></li>
+<li><a href="#sec-8">8. Building a validating DNS Resolver</a>
+<ul class="nav">
+<li><a href="#sec-8-1">8.1. Enable ISC BIND 9 repository for Enterprise Linux 9</a></li>
+<li><a href="#sec-8-2">8.2. Installing BIND 9.20</a></li>
+<li><a href="#sec-8-3">8.3. Optimizations to the default configuration</a></li>
+</ul>
+</li>
+<li><a href="#sec-9">9. EDNS - Response Size Limits in DNS</a>
+<ul class="nav">
+<li><a href="#sec-9-1">9.1. The early years - 512byte is enough</a></li>
+<li><a href="#sec-9-2">9.2. RFC 1035</a></li>
+<li><a href="#sec-9-3">9.3. The 13 Root DNS Servers</a></li>
+<li><a href="#sec-9-4">9.4. DNS over TCP</a></li>
+<li><a href="#sec-9-5">9.5. New developments in DNS</a></li>
+<li><a href="#sec-9-6">9.6. EDNS0</a></li>
+<li><a href="#sec-9-7">9.7. ENDS0 features</a></li>
+<li><a href="#sec-9-8">9.8. EDNS1 (2,3,4 &#x2026;)</a></li>
+</ul>
+</li>
+<li><a href="#sec-10">10. DNS resolver best practices</a>
+<ul class="nav">
+<li><a href="#sec-10-1">10.1. Prevent DNS fragmentation</a></li>
+<li><a href="#sec-10-2">10.2. minimal responses and minimal any</a></li>
+<li><a href="#sec-10-3">10.3. Empty Zones - Protecting the Internet from Useless Queries</a></li>
+<li><a href="#sec-10-4">10.4. Prefetch</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</nav>
+</div><div class="col-md-9 col-md-pull-3"><h1 class="title">DNS &amp; BIND 9 Leap-Ahead Online Training</h1>
+
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> Course Notes and exercises</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+This page contains the course notes and exercise instructions for
+attendees of the online training <b>DNS &amp; BIND Leap-Ahead</b>.
+</p>
+
+<p>
+Click on images to zoom in.
+</p>
+</div>
+
+<div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> Introduction</h3>
+<div class="outline-text-3" id="text-1-1">
+<ul class="org-ul">
+<li>What is your interest in DNS?
+</li>
+<li>What is your prior knowledge of DNS?
+</li>
+<li>What do you want to learn about DNS?
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> Virtual machines for this lab</h3>
+<div class="outline-text-3" id="text-1-2">
+<ul class="org-ul">
+<li>User : <code>user</code>
+</li>
+<li>Password: <code>DNSandBIND</code>
+</li>
+<li>Root-Shell via <code>sudo -s</code>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3"><span class="section-number-3">1.3</span> Access to the lab  machines</h3>
+<div class="outline-text-3" id="text-1-3">
+<ul class="org-ul">
+<li>Each student has three lab machines for the <b>DNS Leap Ahead</b>
+training course
+
+<ul class="org-ul">
+<li>A DNS resolver: <code>dnsrNN.dnslab.org</code> (New York, US)
+</li>
+<li>A primary authoritative DNS: <code>nsNNa.dnslab.org</code> (Toronto, CA)
+</li>
+<li>A secondary authoritative DNS: <code>nsNNb.dnslab.org</code> (London, UK)
+</li>
+</ul>
+</li>
+
+<li>During the training course labs, replace <code>NN</code> with your student
+number
+</li>
+</ul>
+
+<table class="table table-striped table-bordered table-hover table-condensed">
+
+
+<colgroup>
+<col  class="right">
+
+<col  class="left">
+
+<col  class="left">
+
+<col  class="left">
+
+<col  class="left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="text-right">NN</th>
+<th scope="col" class="text-left">Name</th>
+<th scope="col" class="text-left">URL for Web-based Terminal</th>
+<th scope="col" class="text-left">SSH Access</th>
+<th scope="col" class="text-left">Zone</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="text-right">01</td>
+<td class="text-left">Matej Ćosić</td>
+<td class="text-left"><a href="https://dnsr01.dnslab.org">https://dnsr01.dnslab.org</a></td>
+<td class="text-left">ssh user@dnsr01.dnslab.org</td>
+<td class="text-left">zone01.dnslab.org</td>
+</tr>
+
+<tr>
+<td class="text-right">02</td>
+<td class="text-left">Darren Ankney</td>
+<td class="text-left"><a href="https://dnsr02.dnslab.org">https://dnsr02.dnslab.org</a></td>
+<td class="text-left">ssh user@dnsr02.dnslab.org</td>
+<td class="text-left">zone02.dnslab.org</td>
+</tr>
+
+<tr>
+<td class="text-right">03</td>
+<td class="text-left">Evron Folkes</td>
+<td class="text-left"><a href="https://dnsr03.dnslab.org">https://dnsr03.dnslab.org</a></td>
+<td class="text-left">ssh user@dnsr03.dnslab.org</td>
+<td class="text-left">zone03.dnslab.org</td>
+</tr>
+
+<tr>
+<td class="text-right">04</td>
+<td class="text-left">Zoltan Gegeny</td>
+<td class="text-left"><a href="https://dnsr04.dnslab.org">https://dnsr04.dnslab.org</a></td>
+<td class="text-left">ssh user@dnsr04.dnslab.org</td>
+<td class="text-left">zone04.dnslab.org</td>
+</tr>
+
+<tr>
+<td class="text-right">05</td>
+<td class="text-left">(free)</td>
+<td class="text-left"><a href="https://dnsr05.dnslab.org">https://dnsr05.dnslab.org</a></td>
+<td class="text-left">ssh user@dnsr05.dnslab.org</td>
+<td class="text-left">zone05.dnslab.org</td>
+</tr>
+
+<tr>
+<td class="text-right">06</td>
+<td class="text-left">(free)</td>
+<td class="text-left"><a href="https://dnsr06.dnslab.org">https://dnsr06.dnslab.org</a></td>
+<td class="text-left">ssh user@dnsr06.dnslab.org</td>
+<td class="text-left">zone06.dnslab.org</td>
+</tr>
+
+<tr>
+<td class="text-right">07</td>
+<td class="text-left">Carsten Strotmann(Trainer)</td>
+<td class="text-left">--</td>
+<td class="text-left">--</td>
+<td class="text-left">--</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> New terminology used in DNS &amp; BIND</h2>
+<div class="outline-text-2" id="text-2">
+<ul class="org-ul">
+<li>The terms <code>master</code> and <code>slave</code> have been used to describe primary
+and secondary authoritative DNS servers in the past.
+<ul class="org-ul">
+<li>However this terminology is wrong and misleading, for the
+reasons discussed in the Internet Draft <i>Terminology, Power, and
+Inclusive Language in Internet-Drafts and RFCs</i>:
+<a href="https://tools.ietf.org/html/draft-knodel-terminology">https://tools.ietf.org/html/draft-knodel-terminology</a>
+</li>
+</ul>
+</li>
+<li>In this document, and in configuration examples, we are using the
+new terms <code>primary</code> (instead of <code>master</code>) and <code>secondary</code> (instead
+of <code>slave</code>) whenever possible.
+</li>
+<li>BIND 9 has stared adopting the new terms with BIND 9.14, however
+the transition is not completed and some terms in configuration
+statements are still using the old terms. This will change with
+future releases
+<ul class="org-ul">
+<li>If you use an older version of BIND 9, please substitute the new
+terms for the older ones
+</li>
+</ul>
+</li>
+<li>The old terminology will also be found in older books and
+standards documents (RFCs and Internet Drafts)
+</li>
+<li>DNS terminology can be confusing and is sometimes overloaded. RFC
+9499 <i>DNS terminology</i> ( <a href="https://tools.ietf.org/html/rfc9499">https://tools.ietf.org/html/rfc9499</a> )
+tries to collect and document the current usage of DNS
+terminology.
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> Building the authoritative DNS server</h2>
+<div class="outline-text-2" id="text-3">
+<ul class="org-ul">
+<li>Repeat the steps for the next chapter on the <code>nsNNa</code> and <code>nsNNb</code>
+virtual machines (primary and secondary authoritative server)
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> Enable ISC BIND 9 repository for Enterprise Linux 9</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Add the ISC BIND 9 repository to the packet-manager repository list
+</li>
+</ul>
+<pre class="example">
+% dnf copr enable isc/bind
+</pre>
+<ul class="org-ul">
+<li>Install the EPEL (Extra Packages for Enterprise Linux) repository
+(required for additional dependencies needed for BIND 9.20)
+</li>
+</ul>
+<pre class="example">
+% dnf install epel-release
+</pre>
+<p>
+</div>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2"><span class="section-number-3">3.2</span> Installing BIND 9.20</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Install BIND 9.20 from the ISC repositories
+</li>
+</ul>
+<pre class="example">
+% dnf install isc-bind
+</pre>
+<ul class="org-ul">
+<li>ISC and EPEL signing keys
+</li>
+</ul>
+<pre class="example">
+Importing GPG key 0xC35B531D:
+ Userid     : "isc_bind (None) &lt;isc#bind@copr.fedorahosted.org&gt;"
+ Fingerprint: 490C 4AE6 3D8A 6B24 A641 2C8D ED4A 0B1B C35B 531D
+ From       : https://download.copr.fedorainfracloud.org/results/isc/bind/pubkey.gpg
+
+Importing GPG key 0x3228467C:
+ Userid     : "Fedora (epel9) &lt;epel@fedoraproject.org&gt;"
+ Fingerprint: FF8A D134 4597 106E CE81 3B91 8A38 72BF 3228 467C
+ From       : /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-9
+</pre>
+<ul class="org-ul">
+<li>Quick reference for the <code>named</code> daemon:
+<ul class="org-ul">
+<li>The configuration file can be found at: <code>/etc/opt/isc/scls/isc-bind/named.conf</code>
+</li>
+<li>Command line options for the daemon can be specified in: <code>/etc/opt/isc/scls/isc-bind/sysconfig/named</code>
+</li>
+</ul>
+</li>
+
+<li>Note that due to the nature of Software Collections, no BIND 9
+daemon or utility installed by these packages is available in $PATH
+by default. To be able to use them, do the following:
+<ul class="org-ul">
+<li>to enable the Software Collection for the current shell, run <code>scl
+     enable isc-bind bash</code>
+</li>
+<li>to enable the Software Collection inside a shell script, add the
+following line to it: <code>source scl_source enable isc-bind</code>
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+% source scl_source enable isc-bind
+% which named
+/opt/isc/isc-bind/root/usr/sbin/named
+</pre>
+<ul class="org-ul">
+<li>Add BIND 9 SCL path to bash shell startup
+</li>
+</ul>
+<pre class="example">
+% echo "source scl_source enable isc-bind" &gt;&gt; .bashrc
+</pre>
+<ul class="org-ul">
+<li>Link the ISC BIND configuration file directory into the <code>/etc</code> directory (for easy access)
+</li>
+</ul>
+<pre class="example">
+% ln -s /etc/opt/isc/scls/isc-bind /etc
+</pre>
+<ul class="org-ul">
+<li>Enable and start BIND 9
+</li>
+</ul>
+<pre class="example">
+% systemctl enable --now isc-bind-named
+</pre>
+<ul class="org-ul">
+<li>Check that BIND 9 is running without errors
+</li>
+</ul>
+<pre class="example">
+% rndc status
+% systemctl status isc-bind-named
+</pre>
+<p>
+</div>
+</p>
+</div>
+<div id="outline-container-sec-3-2-1" class="outline-4">
+<h4 id="sec-3-2-1"><span class="section-number-4">3.2.1</span> A configuration file for an authoritative BIND 9 server</h4>
+<div class="outline-text-4" id="text-3-2-1">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Let's tweak the configuration file <code>/etc/isc-bind/named.conf</code> for an
+authoritative-only DNS server
+</li>
+</ul>
+<pre class="example">
+options {
+        directory "/var/named";
+        listen-on { any; };
+        listen-on-v6 { any; };
+        dnssec-validation no;
+        recursion no;
+        minimal-responses yes;
+        minimal-any yes;
+        querylog no;
+        max-udp-size 1232;
+        edns-udp-size 1232;
+        zone-statistics yes;
+};
+</pre>
+<ul class="org-ul">
+<li>Logging for the authoritative server
+</li>
+</ul>
+<pre class="example">
+logging {
+        channel default_syslog {
+          // Send most of the named messages to syslog.
+          syslog local2;
+          severity debug;
+        };
+        channel xfer {
+          file "transfer.log" versions 10 size 10M;
+          print-time yes;
+        };
+        channel update {
+          file "update.log" versions 10 size 10M;
+          print-time yes;
+        };
+        channel named {
+          file "named.log" versions 10 size 20M;
+          print-time yes;
+          print-category yes;
+        };
+        channel security {
+          file "security.log" versions 10 size 20M;
+          print-time yes;
+        };
+        channel dnssec {
+          file "dnssec.log" versions 10 size 20M;
+          print-time yes;
+        };
+        channel ratelimit {
+          file "ratelimit.log" versions 10 size 20M;
+          print-time yes;
+	      };
+        channel query_log {
+          file "query.log" versions 10 size 20M;
+          severity debug;
+          print-time yes;
+        };
+        channel query-error {
+          file "query-errors.log" versions 10 size 20M;
+          severity info;
+          print-time yes;
+        };
+
+        category default        { default_syslog;  named; };
+        category general        { default_syslog;  named; };
+        category security       { security; };
+        category queries        { query_log; };
+        category dnssec         { dnssec; };
+        category edns-disabled  { default_syslog; };
+        category config         { default_syslog; named; };
+        category xfer-in        { default_syslog; xfer; };
+        category xfer-out       { default_syslog; xfer; };
+        category notify         { default_syslog; xfer; };
+        category client         { default_syslog; named; };
+        category network        { default_syslog; named; };
+        category rate-limit     { ratelimit; };
+	category update         { update; };
+};
+</pre>
+<ul class="org-ul">
+<li>Test the configuration
+</li>
+</ul>
+<pre class="example">
+% named-checkconf
+</pre>
+<ul class="org-ul">
+<li>Reload the BIND 9 configuration
+</li>
+</ul>
+<pre class="example">
+% rndc reconfig
+</pre>
+<ul class="org-ul">
+<li>The last two commands might fail. Why? What can you do to fix the issue?
+</li>
+<li>Open port 53 (DNS) in the firewall
+</li>
+</ul>
+<pre class="example">
+% firewall-cmd --permanent --zone=public --add-service=dns
+% firewall-cmd --reload
+</pre>
+<ul class="org-ul">
+<li>Test if you can reach your new authoritative server from the DNS resolver
+<ul class="org-ul">
+<li>from the resolver machine (<code>NN</code> = your number)
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+$ dig @nsNNa.dnslab.org ch TXT version.bind
+</pre>
+<p>
+</div>
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-3-3" class="outline-3">
+<h3 id="sec-3-3"><span class="section-number-3">3.3</span> Solution "Building an authoritative DNS Server":</h3>
+<div class="outline-text-3" id="text-3-3">
+<ul class="org-ul">
+<li>Issue: The <code>/var/named</code> directory is missing and needs to be owned
+by the <code>named</code> user.
+</li>
+<li>Create the <code>/var/named</code> directory
+</li>
+</ul>
+<pre class="example">
+% mkdir /var/named
+</pre>
+<ul class="org-ul">
+<li>Adjust the permissions on the BIND 9 home directory
+</li>
+</ul>
+<pre class="example">
+% chown named: /var/named
+</pre>
+<ul class="org-ul">
+<li>The BIND 9 process should now successfully load the new
+configuration
+</li>
+</ul>
+<pre class="example">
+% rndc reconfig
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-3-4" class="outline-3">
+<h3 id="sec-3-4"><span class="section-number-3">3.4</span> Create a primary zone</h3>
+<div class="outline-text-3" id="text-3-4">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Work on the primary DNS server <code>nsNNa</code>
+</li>
+<li>Goal: a working primary zone for this training lab environment
+</li>
+<li>The trainer will publish the solution after some time into the
+exercise, but first try to create the configuration without
+outside help
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+<div id="outline-container-sec-3-4-1" class="outline-4">
+<h4 id="sec-3-4-1"><span class="section-number-4">3.4.1</span> A zone file</h4>
+<div class="outline-text-4" id="text-3-4-1">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Create a new zone file for the zone <code>zoneNN.dnslab.org</code> in the BIND 9
+home directory <code>/var/named</code>
+</li>
+<li>The zone records should have a TTL of 60 seconds (not recommended
+for production, but required for the course labs)
+</li>
+<li>The zone should contain: 1 x SOA, 2 x NS records (for <code>nsNNa</code> and
+<code>nsNNb</code>)
+</li>
+<li>One A record for the name <code>primary.zoneNN.dnslab.org</code> (IPv4 of <code>nsNNa</code>)
+</li>
+<li>One AAAA record for the name <code>primary.zoneNN.dnslab.org</code> (IPv6 of <code>nsNNa</code>)
+</li>
+<li>One A record for the name <code>secondary.zoneNN.dnslab.org</code> (IPv4 of <code>nsNNb</code>)
+</li>
+<li>One AAAA record for the name <code>secondary.zoneNN.dnslab.org</code> (IPv6 of <code>nsNNb</code>)
+</li>
+<li>A TXT record with the owner-name of <code>text</code> and a text of your
+choice
+</li>
+<li>Two MX records for <code>primary</code> and <code>secondary</code> with different
+preference values
+</li>
+<li>Check the syntax of your zone-file with <code>named-checkzone</code>
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-3-4-2" class="outline-4">
+<h4 id="sec-3-4-2"><span class="section-number-4">3.4.2</span> Register the zone in the BIND 9 configuration</h4>
+<div class="outline-text-4" id="text-3-4-2">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Create a zone block in <code>named.conf</code> for a primary zone for the zone
+created in the last chapter
+</li>
+<li>Test the configuration with <code>named-checkconf -z</code>
+</li>
+<li>Reload the BIND 9 configuration
+</li>
+<li>Verify that <code>nsNNa.dnslab.org</code> answers authoritatively for this zone
+(AA-Flag!)
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-3-4-3" class="outline-4">
+<h4 id="sec-3-4-3"><span class="section-number-4">3.4.3</span> Solution for primary zone</h4>
+<div class="outline-text-4" id="text-3-4-3">
+<ul class="org-ul">
+<li>The Zonefile (your zone will have different IPv4 and IPv6 addresses)
+</li>
+</ul>
+<pre class="example">
+$TTL 60
+@          IN SOA       nsNNa.dnslab.org. hostmaster.zoneNN.dnslab.org. 1001 1h 30m 41d 30
+           IN NS        nsNNa.dnslab.org.
+           IN NS        nsNNb.dnslab.org.
+           IN MX        10 primary
+           IN MX        20 secondary
+primary    IN A         192.0.2.53
+           IN AAAA      2001:db8:100::53
+secondary  IN A         192.0.2.153
+           IN AAAA      2001:db8:200::53
+text       IN TXT       "DNS Leap Ahead!"
+</pre>
+<ul class="org-ul">
+<li>The primary zone configuration on <code>nsNNa</code>
+</li>
+</ul>
+<pre class="example">
+zone "zoneNN.dnslab.org" {
+    type primary;
+    file "zoneNN.dnslab.org";
+};
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-3-5" class="outline-3">
+<h3 id="sec-3-5"><span class="section-number-3">3.5</span> Register the zone on a secondary server</h3>
+<div class="outline-text-3" id="text-3-5">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Work on the secondary DNS server <code>nsNNb</code>
+</li>
+<li>Goal: a working secondary zone for this course
+</li>
+<li>The trainer will publish the solution after some time into the
+exercise, but first try to create the configuration without
+outside help
+</li>
+<li>Create a zone block in <code>named.conf</code> on the secondary server to
+load the zone <code>zoneNN.dnslab.org</code> from the primary server via zone
+transfer
+</li>
+<li>Check the configuration with <code>named-checkconf -z</code>
+</li>
+<li>Reload the BIND 9 configuration
+</li>
+<li>Check the log files for errors
+</li>
+<li>Check the file <code>transfer.log</code> for successful transfer of the zone
+<ul class="org-ul">
+<li>The transfer fails &#x2013; why? How to solve this issue?
+</li>
+</ul>
+</li>
+<li>Verify that <code>nsNNb.dnslab.org</code> answers authoritatively for this zone
+(AA-Flag!)
+</li>
+<li>Verify the delegation of your DNS servers with
+<pre class="example">
+dig zoneNN.dnslab.org +nssearch
+</pre>
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+<div id="outline-container-sec-3-5-1" class="outline-4">
+<h4 id="sec-3-5-1"><span class="section-number-4">3.5.1</span> Solution for secondary zone</h4>
+<div class="outline-text-4" id="text-3-5-1">
+<ul class="org-ul">
+<li>Starting with BIND 9.20.0, outgoing zone transfers are no longer
+enabled by default. An explicit <code>allow-transfer ACL</code> must now be set
+at the zone, view, or options level to enable outgoing transfers.
+<ul class="org-ul">
+<li>Here we use a simple "allow all" ACL (restoring the old,
+pre-BIND-9.20 behavior. We will learn later in the course how to
+secure zone transfer with cryptographic keys (TSIG).
+</li>
+</ul>
+</li>
+<li>The primary zone on <code>nsNNa</code>
+</li>
+</ul>
+<pre class="example">
+zone "zoneNN.dnslab.org" {
+    type primary;
+    file "zoneNN.dnslab.org";
+    allow-transfer { any; };
+};
+</pre>
+
+<ul class="org-ul">
+<li>The secondary zone on <code>nsNNb</code>
+</li>
+</ul>
+<pre class="example">
+zone "zoneNN.dnslab.org" {
+    type secondary;
+    primaries { &lt;ipv6-address-of-primary&gt;; &lt;ipv4-address-of-primary&gt;; };
+    file "zoneNN.dnslab.org";
+};
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> A quick look at DNSSEC</h2>
+<div class="outline-text-2" id="text-4">
+</div><div id="outline-container-sec-4-1" class="outline-3">
+<h3 id="sec-4-1"><span class="section-number-3">4.1</span> DNS Security (or lack of)</h3>
+<div class="outline-text-3" id="text-4-1">
+<ul class="org-ul">
+<li>the classic DNS from 1983 has not been designed with security in mind
+</li>
+<li>Attack vector: DNS cache poisoning  <img src="./img/0205-dns-dangers.png" class="img-responsive" alt="0205-dns-dangers.png">
+</li>
+<li>Attack vector: Men-in-the-Middle data spoofing <img src="./img/0206-dns-dangers.png" class="img-responsive" alt="0206-dns-dangers.png">
+</li>
+<li>Attack vector: changes to the client DNS resolver configuration <img src="./img/0207-dns-dangers.png" class="img-responsive" alt="0207-dns-dangers.png">
+</li>
+<li>Attacks of authoritative DNS servers  <img src="./img/0208-dns-dangers.png" class="img-responsive" alt="0208-dns-dangers.png">
+</li>
+<li>DNSSEC can help  <img src="./img/0210-roadsign.png" class="img-responsive" alt="0210-roadsign.png">
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-4-2" class="outline-3">
+<h3 id="sec-4-2"><span class="section-number-3">4.2</span> DNSSEC</h3>
+<div class="outline-text-3" id="text-4-2">
+<ul class="org-ul">
+<li>the DNS security extension DNSSEC secures DNS data by augmenting
+the data with cryptographic signatures
+<ul class="org-ul">
+<li>the owner (administrator) creates a pair of private and
+public keys for each DNS zone (asymmetric crypto)
+</li>
+<li>the owner/administrator signs all DNS data with the
+private/secret key
+</li>
+<li>the recipient of the data (DNS resolver or client operating
+system or application) will verify (validate) the data
+<ul class="org-ul">
+<li>that the data has not been changed on the server nor during
+transit
+</li>
+<li>that the data comes from the owner (the owner of the
+private key)
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-4-3" class="outline-3">
+<h3 id="sec-4-3"><span class="section-number-3">4.3</span> The chain of trust in DNS</h3>
+<div class="outline-text-3" id="text-4-3">
+<ul class="org-ul">
+<li>DNSSEC creates a chain of trust between the parent zone and the
+child zone
+</li>
+</ul>
+
+<figure>
+<p><img src="./img/0209-DNSSEC-chain-of-trust.png" class="img-responsive" alt="0209-DNSSEC-chain-of-trust.png">
+</p>
+</figure>
+<ul class="org-ul">
+<li>Applications and DNS resolvers can follow the chain of trust to a
+configured trust anchor to validate the DNS data
+</li>
+<li>We will look into DNSSEC in more details later in this course
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> DNSSEC in a nutshell</h2>
+<div class="outline-text-2" id="text-5">
+<ul class="org-ul">
+<li>In DNSSEC, each zone has one or more key pairs.
+<ul class="org-ul">
+<li>The private key of each pair
+<ul class="org-ul">
+<li>Is stored securely (probably on a hidden primary)
+</li>
+<li>Is used to sign zone data
+</li>
+<li>Should never be stored in a RR
+</li>
+</ul>
+</li>
+<li>The public key of each pair
+<ul class="org-ul">
+<li>Is stored in the zone data, as a DNSKEY record
+</li>
+<li>Is used to verify zone data
+</li>
+</ul>
+</li>
+</ul>
+</li>
+
+<li>A private key signs the hashes of each RRSet in a zone.
+</li>
+<li>The public key is accessible through a standard RR.
+<ul class="org-ul">
+<li>Recursive servers or clients query for the public key RR in order to verify a hash.
+</li>
+<li>The RR is known as the DNSKEY and covered below.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+
+<div id="outline-container-sec-5-1" class="outline-3">
+<h3 id="sec-5-1"><span class="section-number-3">5.1</span> DNSSEC key algorithms</h3>
+<div class="outline-text-3" id="text-5-1">
+<table class="table table-striped table-bordered table-hover table-condensed">
+
+
+<colgroup>
+<col  class="left">
+
+<col  class="right">
+
+<col  class="left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="text-left">Algorithm</th>
+<th scope="col" class="text-right">No.</th>
+<th scope="col" class="text-left">Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="text-left">RSAMD5</td>
+<td class="text-right">1</td>
+<td class="text-left">deprecated, not implemented</td>
+</tr>
+
+<tr>
+<td class="text-left"><del>RSASHA1</del></td>
+<td class="text-right">5</td>
+<td class="text-left">not recommended, implemented (removed in <img src="img/bind-9-16-badge.png">)</td>
+</tr>
+
+<tr>
+<td class="text-left">RSASHA256</td>
+<td class="text-right">8</td>
+<td class="text-left">recommended</td>
+</tr>
+
+<tr>
+<td class="text-left">RSASHA512</td>
+<td class="text-right">10</td>
+<td class="text-left">large keys</td>
+</tr>
+
+<tr>
+<td class="text-left"><del>DSA</del></td>
+<td class="text-right">3</td>
+<td class="text-left">slow validation, no extra security (removed in <img src="img/bind-9-16-badge.png">)</td>
+</tr>
+
+<tr>
+<td class="text-left"><del>ECC-GOST</del></td>
+<td class="text-right">12</td>
+<td class="text-left">removed in BIND 9.18</td>
+</tr>
+
+<tr>
+<td class="text-left">ECDSA</td>
+<td class="text-right">13/14</td>
+<td class="text-left">small signatures, read ECDSA and DNSSEC: <a href="http://blog.apnic.net/2014/10/23/ecdsa-and-dnssec/">http://blog.apnic.net/2014/10/23/ecdsa-and-dnssec/</a></td>
+</tr>
+
+<tr>
+<td class="text-left">ED448/ED25519</td>
+<td class="text-right">16/15</td>
+<td class="text-left">new, not widely supported <a href="https://tools.ietf.org/html/rfc8080">RFC 8080</a> / <a href="https://tools.ietf.org/html/rfc8032">RFC 8032 Edwards-Curve Digital Signature Algorithm (EdDSA)</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="outline-container-sec-5-2" class="outline-3">
+<h3 id="sec-5-2"><span class="section-number-3">5.2</span> DNSSEC records</h3>
+<div class="outline-text-3" id="text-5-2">
+</div><div id="outline-container-sec-5-2-1" class="outline-4">
+<h4 id="sec-5-2-1"><span class="section-number-4">5.2.1</span> RRSIG</h4>
+<div class="outline-text-4" id="text-5-2-1">
+<ul class="org-ul">
+<li>The RRSIG records holds the cryptographic signature over the DNS
+data. The first field of the RRSIG holds the type this RRSIG is
+for. Together with the domain name of the RRSIG this data is
+important to match the signature to the data record.
+</li>
+<li>A zone's private key signs the RRSets in the zone.
+<ul class="org-ul">
+<li>The signatures are added to the zone as RRSIG RRs.
+</li>
+<li>If two key pairs are in use, each RRSet is signed twice, and
+there is double the number of signatures.
+</li>
+</ul>
+</li>
+<li>Signatures have start and expiration times (typically a month or more apart).
+<ul class="org-ul">
+<li>They must be replaced before expiring. BIND 9 can automate the
+signature updates.
+</li>
+<li>Keys don't have expiration timers.
+</li>
+</ul>
+</li>
+</ul>
+
+<p>
+<img id="RRSIG-record" class="img-responsive" src="img/RRSIG-record-00.png"></ p><input type="button" onclick="NextPage('RRSIG-record','9')" value=">" /><input type="button" onclick="ResetSlides('RRSIG-record')" value="O" /><input type="button" onclick="PrevPage('RRSIG-record')" value="<" />
+</p>
+
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Work on the DNS resolver machine
+</li>
+<li>Ask for the DNSSEC signature of <code>dnssec.works NS</code>:
+</li>
+</ul>
+<pre class="example">
+$ dig dnssec.works NS +dnssec +multi
+</pre>
+<ul class="org-ul">
+<li>Answer these questions into the chat
+<ul class="org-ul">
+<li>Which algorithm is this zone using? check the number against
+<a href="https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml">IANA Domain Name System Security (DNSSEC) Algorithm Numbers</a>
+</li>
+<li>When does the signature expire?
+</li>
+<li>When did the signature become valid?
+</li>
+</ul>
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5-2-2" class="outline-4">
+<h4 id="sec-5-2-2"><span class="section-number-4">5.2.2</span> DNSKEY</h4>
+<div class="outline-text-4" id="text-5-2-2">
+<ul class="org-ul">
+<li>The public key of a DNSSEC key pair is stored in an DNSKEY RR.
+<ul class="org-ul">
+<li>The private key is not publicly available or accessible through DNS.
+</li>
+</ul>
+</li>
+<li>DNSKEY RRs are stored in the zone they can verify.
+<ul class="org-ul">
+<li>This conveniently means the zone administrator can sign all the
+RRSets and create the DNSKEY RRSet.
+</li>
+</ul>
+</li>
+</ul>
+
+<p>
+<img id="DNSKEY-record" class="img-responsive" src="img/DNSKEY-record-00.png"></ p><input type="button" onclick="NextPage('DNSKEY-record','4')" value=">" /><input type="button" onclick="ResetSlides('DNSKEY-record')" value="O" /><input type="button" onclick="PrevPage('DNSKEY-record')" value="<" />
+</p>
+
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Work on the DNS resolver machine
+</li>
+<li>Ask for the DNSSEC keys of <code>dnsworkshop.cz</code>:
+</li>
+</ul>
+<pre class="example">
+$ dig dnsworkshop.cz DNSKEY +dnssec +multi
+</pre>
+<ul class="org-ul">
+<li>Answer these questions into the chat
+<ul class="org-ul">
+<li>Which algorithm is this zone using?
+</li>
+<li>Compare the size of keys and signature with the zone
+<code>dnssec.works</code>
+</li>
+<li>Write in the chat the sizes of both DNS answer messages as
+reported by <code>dig</code>
+</li>
+</ul>
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-5-2-3" class="outline-4">
+<h4 id="sec-5-2-3"><span class="section-number-4">5.2.3</span> DS Record</h4>
+<div class="outline-text-4" id="text-5-2-3">
+<ul class="org-ul">
+<li>The Delegation Signer (DS) records holds the hash of the
+Key-Signing-Key of a DNSSEC signed child zone.
+<ul class="org-ul">
+<li>It is used to verify that the KSK has not been replaced without
+permission
+</li>
+<li>The DS record is usually submitted to the parent zone operator
+via a web-based or API system implemented by the domain reseller
+(registrar)
+<ul class="org-ul">
+<li>This interface can become a target for attacker that want to
+change data in a DNSSEC signed zone and should be protected
+(two factor signon, registry lock etc).
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+<p>
+<img id="DS-record" class="img-responsive" src="img/DS-record-00.png"></ p><input type="button" onclick="NextPage('DS-record','4')" value=">" /><input type="button" onclick="ResetSlides('DS-record')" value="O" /><input type="button" onclick="PrevPage('DS-record')" value="<" />
+</p>
+
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Work on the DNS resolver machine
+</li>
+<li>Ask for the DNSSEC delegation signer of <code>isc.org</code>:
+</li>
+</ul>
+<pre class="example">
+$ dig isc.org DS +dnssec +multi
+</pre>
+<ul class="org-ul">
+<li>Answer these questions into the chat
+<ul class="org-ul">
+<li>Which algorithm is this zone using?
+</li>
+<li>What is the current key-id of the KSK in the zone <code>isc.org</code>?
+</li>
+<li>What hashing algorithm is used for the DS record of <code>isc.org</code>
+<a href="https://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml">check against Delegation Signer (DS) Resource Record (RR) Type Digest Algorithms</a>?
+</li>
+</ul>
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-6" class="outline-2">
+<h2 id="sec-6"><span class="section-number-2">6</span> DNSSEC signing and validation</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+<img id="dnssec-complete" class="img-responsive" src="img/dnssec-complete-00.png"></ p><input type="button" onclick="NextPage('dnssec-complete','10')" value=">" /><input type="button" onclick="ResetSlides('dnssec-complete')" value="O" /><input type="button" onclick="PrevPage('dnssec-complete')" value="<" />
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-7" class="outline-2">
+<h2 id="sec-7"><span class="section-number-2">7</span> DNSSEC validation (simplified)</h2>
+<div class="outline-text-2" id="text-7">
+<ul class="org-ul">
+<li>When the validator gets an RRSIG in a response, it needs the DNSKEY, and DS RR to authenticate.
+<ul class="org-ul">
+<li>If validation fails, the signed RRs are discarded, and SERVFAIL error is returned to the client.
+</li>
+<li>If no appropriate trust anchor exists, the RRSIG is ignored.
+</li>
+<li>If the chain of trust is broken the signature is ignored.
+</li>
+</ul>
+</li>
+<li>The steps in the following animation are simplified.
+<ul class="org-ul">
+<li>It only shows validation using one key per zone (SSK/CSK).
+</li>
+<li>Commonly, a zone has  ZSK &amp; KSK, so there are additional steps.
+</li>
+</ul>
+</li>
+</ul>
+
+<p>
+<img id="DNSSEC-name-resolution" class="img-responsive" src="img/DNSSEC-name-resolution-00.png"></ p><input type="button" onclick="NextPage('DNSSEC-name-resolution','58')" value=">" /><input type="button" onclick="ResetSlides('DNSSEC-name-resolution')" value="O" /><input type="button" onclick="PrevPage('DNSSEC-name-resolution')" value="<" />
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-8" class="outline-2">
+<h2 id="sec-8"><span class="section-number-2">8</span> Building a validating DNS Resolver</h2>
+<div class="outline-text-2" id="text-8">
+<ul class="org-ul">
+<li>Work in the DNS resolver VM <code>dnsrNN.dnslab.org</code>
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-8-1" class="outline-3">
+<h3 id="sec-8-1"><span class="section-number-3">8.1</span> Enable ISC BIND 9 repository for Enterprise Linux 9</h3>
+<div class="outline-text-3" id="text-8-1">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Add the ISC BIND 9 repository to the packet-manager repository list
+</li>
+</ul>
+<pre class="example">
+% dnf copr enable isc/bind
+</pre>
+<ul class="org-ul">
+<li>Install the EPEL (Extra Packages for Enterprise Linux) repository
+(required for additional dependencies needed for BIND 9.20)
+</li>
+</ul>
+<pre class="example">
+% dnf install epel-release
+</pre>
+<p>
+</div>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-8-2" class="outline-3">
+<h3 id="sec-8-2"><span class="section-number-3">8.2</span> Installing BIND 9.20</h3>
+<div class="outline-text-3" id="text-8-2">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Install BIND 9.20 from the ISC repositories
+</li>
+</ul>
+<pre class="example">
+% dnf install isc-bind
+</pre>
+<ul class="org-ul">
+<li>ISC and EPEL signing keys
+</li>
+</ul>
+<pre class="example">
+Importing GPG key 0xC35B531D:
+ Userid     : "isc_bind (None) &lt;isc#bind@copr.fedorahosted.org&gt;"
+ Fingerprint: 490C 4AE6 3D8A 6B24 A641 2C8D ED4A 0B1B C35B 531D
+ From       : https://download.copr.fedorainfracloud.org/results/isc/bind/pubkey.gpg
+
+Importing GPG key 0x3228467C:
+ Userid     : "Fedora (epel9) &lt;epel@fedoraproject.org&gt;"
+ Fingerprint: FF8A D134 4597 106E CE81 3B91 8A38 72BF 3228 467C
+ From       : /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-9
+</pre>
+<ul class="org-ul">
+<li>Quick reference for the <code>named</code> daemon:
+<ul class="org-ul">
+<li>The configuration file can be found at: <code>/etc/opt/isc/scls/isc-bind/named.conf</code>
+</li>
+<li>Command line options for the daemon can be specified in: <code>/etc/opt/isc/scls/isc-bind/sysconfig/named</code>
+</li>
+</ul>
+</li>
+
+<li>Note that due to the nature of Software Collections, no BIND 9
+daemon or utility installed by these packages is available in $PATH
+by default. To be able to use them, do the following:
+<ul class="org-ul">
+<li>to enable the Software Collection for the current shell, run <code>scl
+     enable isc-bind bash</code>
+</li>
+<li>to enable the Software Collection inside a shell script, add the
+following line to it: <code>source scl_source enable isc-bind</code>
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+% source scl_source enable isc-bind
+% which named
+/opt/isc/isc-bind/root/usr/sbin/named
+</pre>
+<ul class="org-ul">
+<li>Add BIND 9 SCL path to bash shell startup
+</li>
+</ul>
+<pre class="example">
+% echo "source scl_source enable isc-bind" &gt;&gt; .bashrc
+</pre>
+<ul class="org-ul">
+<li>Link the ISC BIND configuration file directory into the <code>/etc</code> directory (for easy access)
+</li>
+</ul>
+<pre class="example">
+% ln -s /etc/opt/isc/scls/isc-bind /etc
+</pre>
+<ul class="org-ul">
+<li>Enable and start BIND 9
+</li>
+</ul>
+<pre class="example">
+% systemctl enable --now isc-bind-named
+</pre>
+<ul class="org-ul">
+<li>Check that BIND 9 is running without errors
+</li>
+</ul>
+<pre class="example">
+% rndc status
+% systemctl status isc-bind-named
+</pre>
+<ul class="org-ul">
+<li>Check if our BIND 9 works as a DNS resolver
+</li>
+</ul>
+<pre class="example">
+$ dig @localhost google.com
+</pre>
+<ul class="org-ul">
+<li>Repeat the last query again
+</li>
+<li>Please send the answer to this question to the chat:
+<ul class="org-ul">
+<li>What is the answer time for the 1st request?
+</li>
+<li>What is the answer time for the 2nd request?
+</li>
+<li>Guess what causes the difference?
+</li>
+</ul>
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-8-3" class="outline-3">
+<h3 id="sec-8-3"><span class="section-number-3">8.3</span> Optimizations to the default configuration</h3>
+<div class="outline-text-3" id="text-8-3">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Use your virtual lab machine, <code>dnsrNN</code> (DNS Resolver)
+</li>
+<li>Let's tweak the configuration file <code>/etc/isc-bind/named.conf</code> for a
+resolver DNS server
+</li>
+<li>Add the following new lines in the <code>options</code> block in the
+<code>/etc/isc-bind/named.conf</code> file:
+</li>
+</ul>
+<pre class="example">
+options {
+        [...]
+        server-id none;
+        version none;
+        hostname none;
+        recursive-clients 32768;
+        tcp-clients 1024;
+        max-clients-per-query 1024;
+        fetches-per-zone 2048;
+        fetches-per-server 4096;
+        edns-udp-size 1232;
+        max-udp-size 1232;
+        minimal-responses yes;
+        querylog no;
+        max-cache-size 2147483648;
+};
+</pre>
+<ul class="org-ul">
+<li>The values above are for an ISP level DNS resolver. They should work
+for a broad range of DNS resolver machines, from small to very
+large.
+</li>
+<li>The new configuration statements:
+<ul class="org-ul">
+<li><code>dnssec-validation auto;</code> enables DNSSEC validation via the
+builtin trust anchor for the Internet Root-Zone. If DNSSEC is
+used in an closed private DNS system (not connected to the
+Internet), dedicated DNSSEC trust anchor must be configured.
+This setting is the default in <img src="img/bind-9-16-badge.png">
+</li>
+<li><b>server-id none</b>: disable returning the server's hostname on the
+query <code>dig @ip-of-server ch TXT hostname.bind</code>
+</li>
+<li><b>version none</b>: disable returning the BIND 9 version number on
+the query <code>dig @ip-of-server ch TXT version.bind</code>
+</li>
+<li><b>recursive-clients</b>: number of concurrent DNS queries over UDP
+that are allowed from clients
+</li>
+<li><b>tcp-clients</b>: number of concurrent DNS queries over TCP that are
+allowed from clients
+</li>
+<li><b>max-clients-per-query 1024</b>: rate-limiting - number of
+concurrent clients that can request the same query
+</li>
+<li><b>fetches-per-zone</b>: rate-limiting - maximum number of concurrent
+DNS queries inside one zone
+</li>
+<li><b>fetches-per-server</b>: rate-limiting - maximum number of
+concurrent DNS queries towards one authoritative DNS server
+</li>
+<li><b>edns-udp-size</b>: maximum UDP answer size requested from
+authoritative servers
+</li>
+<li><b>max-udp-size</b>: maximum UDP answer size when sending answers to
+clients
+</li>
+<li><b>minimal-responses yes</b>: only fill the authority and additional
+sections when necessary by the DNS protocol
+</li>
+<li><b>querylog no</b>: disable query logging on start/restart even if
+configured. Query logging slows down the DNS resolver
+</li>
+<li><b>max-cache-size 2147483648</b>: use a maximum of 2GB for the DNS
+cache. A larger cache often has a negative impact on the DNS
+resolvers performance. If unsure, test with a performance benchmark.
+</li>
+</ul>
+</li>
+<li>Check the configuration with <code>named-checkconf</code> and reload the BIND 9 configuration with <code>rndc reconfig</code>
+</li>
+<li>Make sure that the DNS resolver still does resolve DNS names in the Internet
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-9" class="outline-2">
+<h2 id="sec-9"><span class="section-number-2">9</span> EDNS - Response Size Limits in DNS</h2>
+<div class="outline-text-2" id="text-9">
+</div><div id="outline-container-sec-9-1" class="outline-3">
+<h3 id="sec-9-1"><span class="section-number-3">9.1</span> The early years - 512byte is enough</h3>
+<div class="outline-text-3" id="text-9-1">
+<ul class="org-ul">
+<li>The original DNS protocol had a size limit for DNS messages over UDP of 512 bytes
+<ul class="org-ul">
+<li>The aim was to prevent fragmentation on the network path
+<ul class="org-ul">
+<li>esp. in the early days of TCP/IP, fragmentation was slow
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-9-2" class="outline-3">
+<h3 id="sec-9-2"><span class="section-number-3">9.2</span> RFC 1035</h3>
+<div class="outline-text-3" id="text-9-2">
+<ul class="org-ul">
+<li><a href="https://tools.ietf.org/html/rfc1035">RFC 1035</a> states in 2.3.4. Size limits:
+<blockquote>
+<p>
+UDP messages    512 octets or less
+</p>
+</blockquote>
+</li>
+<li>and in section 4.2.1 UDP usage:
+<blockquote>
+<p>
+Messages carried by UDP are restricted to 512 bytes (not counting
+the IP or UDP headers).  Longer messages are truncated and the TC
+bit is set in the header.
+</p>
+</blockquote>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-9-3" class="outline-3">
+<h3 id="sec-9-3"><span class="section-number-3">9.3</span> The 13 Root DNS Servers</h3>
+<div class="outline-text-3" id="text-9-3">
+<ul class="org-ul">
+<li>One artifact of the size limit of the original DNS protocol is the
+number of authoritative DNS servers for the root zone in the
+Internet (aka Root-Server)
+<ul class="org-ul">
+<li>There are 13 logical Root-Servers (<code>a.root-servers.net</code> to
+<code>m.root-servers.net</code>)
+</li>
+<li>This is because without IPv6 and without the later EDNS0, 13 DNS
+names and IPv4 addresses fit nicely into the 512 byte limit
+</li>
+</ul>
+</li>
+<li>The thirteen names
+</li>
+</ul>
+<pre class="example">
+$ dig -4 @a.root-servers.net NS . +noedns +nodnssec
+
+; &lt;&lt;&gt;&gt; DiG 9.16.7 &lt;&lt;&gt;&gt; -4 @a.root-servers.net ns . +noedns +nodnssec
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 19932
+;; flags: qr aa rd; QUERY: 1, ANSWER: 13, AUTHORITY: 0, ADDITIONAL: 15
+[...]
+;; ANSWER SECTION:
+.			518400	IN	NS	a.root-servers.net.
+.			518400	IN	NS	b.root-servers.net.
+.			518400	IN	NS	c.root-servers.net.
+.			518400	IN	NS	d.root-servers.net.
+.			518400	IN	NS	e.root-servers.net.
+.			518400	IN	NS	f.root-servers.net.
+.			518400	IN	NS	g.root-servers.net.
+.			518400	IN	NS	h.root-servers.net.
+.			518400	IN	NS	i.root-servers.net.
+.			518400	IN	NS	j.root-servers.net.
+.			518400	IN	NS	k.root-servers.net.
+.			518400	IN	NS	l.root-servers.net.
+.			518400	IN	NS	m.root-servers.net.
+[...]
+;; Query time: 37 msec
+;; SERVER: 198.41.0.4#53(198.41.0.4)
+;; WHEN: Mon Oct 26 10:14:30 CET 2020
+;; MSG SIZE  rcvd: 492
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-9-4" class="outline-3">
+<h3 id="sec-9-4"><span class="section-number-3">9.4</span> DNS over TCP</h3>
+<div class="outline-text-3" id="text-9-4">
+<ul class="org-ul">
+<li>When a DNS server needs to send a DNS response message larger than
+the UDP size limit, it will send an incomplete response with the TC
+"<i>Truncated</i>" flag set in the DNS header
+<ul class="org-ul">
+<li>The DNS client (could be a DNS resolver), will detect the TC flag
+and will repeat the query over TCP
+<ul class="org-ul">
+<li>There is no size limit on DNS responses over TCP
+</li>
+<li>But TCP is not as fast as UDP, so this should be avoided
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Because the DNS protocol can switch from UDP to TCP on larger
+responses (&gt; 512 byte), DNS servers (authoritative as well as DNS
+resolvers) should always support DNS over TCP
+<ul class="org-ul">
+<li>And the firewall should allow DNS port 53 on UDP and TCP
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+$ dig -4 larger.dnssec.works TXT +noedns
+;; Truncated, retrying in TCP mode.
+
+; &lt;&lt;&gt;&gt; DiG 9.16.7 &lt;&lt;&gt;&gt; -4 larger.dnssec.works txt +noedns
+;; global options: +cmd
+;; Got answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 64327
+;; flags: qr rd ra ad; QUERY: 1, ANSWER: 8, AUTHORITY: 0, ADDITIONAL: 0
+[...]
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-9-5" class="outline-3">
+<h3 id="sec-9-5"><span class="section-number-3">9.5</span> New developments in DNS</h3>
+<div class="outline-text-3" id="text-9-5">
+<ul class="org-ul">
+<li>In the mid 1990ies, there was new development around the DNS protocol
+<ul class="org-ul">
+<li>DNS security (DNSSEC)
+</li>
+<li>Cryptographic Signatures (TSIG and SIG(0))
+</li>
+<li>IPv6 Resource records
+</li>
+<li>DNS as a distribution channel for cryptographic keys for applications
+</li>
+</ul>
+</li>
+<li>The 512byte limit was becoming a hindrance
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-9-6" class="outline-3">
+<h3 id="sec-9-6"><span class="section-number-3">9.6</span> EDNS0</h3>
+<div class="outline-text-3" id="text-9-6">
+<ul class="org-ul">
+<li>The IETF created an extension to DNS, called EDNS0
+<ul class="org-ul">
+<li><a href="https://tools.ietf.org/html/rfc2671">RFC 2671 <i>Extension Mechanisms for DNS (EDNS0)</i></a> (1999-08) and <a href="https://tools.ietf.org/html/rfc6891">RFC 6891</a> (2013-04)
+</li>
+</ul>
+</li>
+<li>EDNS Version 0 (EDNS0) allows DNS messages sizes over UDP for up to
+4096 bytes
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-9-7" class="outline-3">
+<h3 id="sec-9-7"><span class="section-number-3">9.7</span> ENDS0 features</h3>
+<div class="outline-text-3" id="text-9-7">
+<ul class="org-ul">
+<li>Besides lifting the limit on the maximum DNS response size, EDNS
+allows for additional DNS flags and payload:
+<ul class="org-ul">
+<li>DNSSEC OK Flag (DO)
+</li>
+<li><a href="https://tools.ietf.org/html/rfc7314">RFC 7314 Expire Option</a>
+</li>
+<li><a href="https://tools.ietf.org/html/rfc7828">RFC 7828 TCP Keepalive Option</a>
+</li>
+<li><a href="https://tools.ietf.org/html/rfc7830">RFC 7830 Padding Option</a>
+</li>
+<li><a href="https://tools.ietf.org/html/rfc7873">RFC 7873 DNS cookies</a>
+</li>
+<li><a href="https://tools.ietf.org/html/rfc8145">RFC 8145 Signaling Trust Anchor Knowledge in DNSSEC</a>
+</li>
+<li><a href="https://tools.ietf.org/html/rfc8914">RFC 8914 Extended DNS errors</a>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-9-8" class="outline-3">
+<h3 id="sec-9-8"><span class="section-number-3">9.8</span> EDNS1 (2,3,4 &#x2026;)</h3>
+<div class="outline-text-3" id="text-9-8">
+<ul class="org-ul">
+<li>The current version of EDNS is version 0
+<ul class="org-ul">
+<li>There had been discussions in the IETF on newer EDNS versions
+(such as EDNS1
+<a href="https://datatracker.ietf.org/doc/draft-andrews-edns1/">https://datatracker.ietf.org/doc/draft-andrews-edns1/</a>)
+</li>
+<li>But so far no new EDNS version has been standardized
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-10" class="outline-2">
+<h2 id="sec-10"><span class="section-number-2">10</span> DNS resolver best practices</h2>
+<div class="outline-text-2" id="text-10">
+</div><div id="outline-container-sec-10-1" class="outline-3">
+<h3 id="sec-10-1"><span class="section-number-3">10.1</span> Prevent DNS fragmentation</h3>
+<div class="outline-text-3" id="text-10-1">
+</div><div id="outline-container-sec-10-1-1" class="outline-4">
+<h4 id="sec-10-1-1"><span class="section-number-4">10.1.1</span> IPv6 and DNS fragmentation</h4>
+<div class="outline-text-4" id="text-10-1-1">
+<ul class="org-ul">
+<li>DNS originally had a 512B UDP payload limit.
+</li>
+<li>The limit was raised to 4096B with EDNS0, <a href="https://tools.ietf.org/html/rfc2671">RFC 2671 <i>Extension
+Mechanisms for DNS (EDNS0)</i></a> (1999-08) and <a href="https://tools.ietf.org/html/rfc6891">RFC 6891</a> (2013-04).
+</li>
+<li>IPv6 fragmentation is broken
+<ul class="org-ul">
+<li><a href="https://tools.ietf.org/html/rfc7872">RFC 7872: Observations on the Dropping of Packets with IPv6 Extension Headers in the Real World</a>
+</li>
+<li>IPv6 packets &gt; 1280B may fragment. That effects DNS responses
+over UDP.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-10-1-2" class="outline-4">
+<h4 id="sec-10-1-2"><span class="section-number-4">10.1.2</span> Cache Spoofing Attacks via DNS fragmentation</h4>
+<div class="outline-text-4" id="text-10-1-2">
+<ul class="org-ul">
+<li>Attacker can use DNS fragmentation to plant wrong information inside a DNS Resolver cache
+<ul class="org-ul">
+<li>Without DNSSEC, all identify information is in the 1st fragment
+</li>
+<li>The attacker can spoof the 2nd fragment without anyone noticing
+</li>
+</ul>
+</li>
+</ul>
+
+<p>
+<img id="DNS-frag-spoofing" class="img-responsive" src="img/DNS-frag-spoofing-00.png"></ p><input type="button" onclick="NextPage('DNS-frag-spoofing','8')" value=">" /><input type="button" onclick="ResetSlides('DNS-frag-spoofing')" value="O" /><input type="button" onclick="PrevPage('DNS-frag-spoofing')" value="<" />
+</p>
+</div>
+</div>
+<div id="outline-container-sec-10-1-3" class="outline-4">
+<h4 id="sec-10-1-3"><span class="section-number-4">10.1.3</span> Preventing fragmentation</h4>
+<div class="outline-text-4" id="text-10-1-3">
+<ul class="org-ul">
+<li>Configure a maximum EDNS packet size of 1232 byte (1280 IPv6 MTU -
+UDP header - IPv6 header)
+<ul class="org-ul">
+<li>This also works for IPv4 over Ethernet
+</li>
+<li>This is the new default in DNS software (BIND 9, Unbound etc)
+since <a href="https://dnsflagday.net/2020/">DNS Flag-Day 2020</a> (October 2020)
+</li>
+</ul>
+</li>
+<li>Example for BIND 9 <code>named.conf</code>
+</li>
+</ul>
+<pre class="example">
+options {
+  [...]
+  max-udp-size 1232;
+  edns-udp-size 1232;
+};
+</pre>
+<ul class="org-ul">
+<li><b>Important:</b> a DNS Resolver with this setting <b>must</b> support
+DNS-over-TCP (Port 53) to the Internet
+<ul class="org-ul">
+<li>Make sure that outgoing connections on port 53/TCP (DNS) are not
+blocked
+</li>
+</ul>
+</li>
+<li>Optional: to increase security, block all fragmented UDP traffic
+towards the DNS resolver in a firewall
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-10-2" class="outline-3">
+<h3 id="sec-10-2"><span class="section-number-3">10.2</span> minimal responses and minimal any</h3>
+<div class="outline-text-3" id="text-10-2">
+</div><div id="outline-container-sec-10-2-1" class="outline-4">
+<h4 id="sec-10-2-1"><span class="section-number-4">10.2.1</span> Minimal responses</h4>
+<div class="outline-text-4" id="text-10-2-1">
+<ul class="org-ul">
+<li>RFC 1034 defines the additional section in an DNS answer as
+<i>Carries RRs which may be helpful in using the RRs in the other sections.</i>
+<ul class="org-ul">
+<li>In the default configuration, BIND 9 tries to be very helpful,
+sending additional information …
+</li>
+<li>… creating larger than needed DNS answer packets
+</li>
+<li>This is sometimes exploited by attackers in distributed denial of
+service attacks
+
+
+<figure>
+<p><img src="./img/DNS-reflection-01.png" class="img-responsive" alt="DNS-reflection-01.png">
+</p>
+</figure>
+
+
+<figure>
+<p><img src="./img/DNS-reflection-02.png" class="img-responsive" alt="DNS-reflection-02.png">
+</p>
+</figure>
+
+
+<figure>
+<p><img src="./img/DNS-Additional-Section.png" class="img-responsive" alt="DNS-Additional-Section.png">
+</p>
+</figure>
+</li>
+</ul>
+</li>
+
+<li>Configure <i>"minimal-responses"</i> in BIND 9
+</li>
+</ul>
+<pre class="example">
+options {
+    [...]
+   minimal-responses yes;
+};
+</pre>
+
+<ul class="org-ul">
+<li>BIND 9 will only return the data required for the DNS protocol to
+work
+<ul class="org-ul">
+<li>this reduces the <i>ammo</i> available to attackers
+
+
+<figure>
+<p><img src="./img/Minimal-Responses.png" class="img-responsive" alt="Minimal-Responses.png">
+</p>
+</figure>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-10-2-2" class="outline-4">
+<h4 id="sec-10-2-2"><span class="section-number-4">10.2.2</span> Minimal ANY</h4>
+<div class="outline-text-4" id="text-10-2-2">
+<ul class="org-ul">
+<li>A BIND 9 server getting a query with type ANY (QTYPE 255) will answer with all records matching the requested domain name and class
+<ul class="org-ul">
+<li>This can create large UDP DNS answer packets
+<pre class="example">
+;; QUESTION SECTION:
+;menandmice.com.                        IN      ANY
+
+;; ANSWER SECTION:
+menandmice.com.         86400   IN      SOA     dns1.menandmice.com. hostmaster.menandmice.com. 2016052701 900 300 604800 900
+menandmice.com.         3600    IN      TXT     "HhnTdT3K"
+menandmice.com.         3600    IN      TXT     "MS=ms81797768"
+menandmice.com.         3600    IN      TXT     "v=spf1  include:spf.protection.outlook.com a:smtp.menandmice.is a:support.menandmice.com a:otrs.menandmice.com a:imap2.skyrr.is a:mx.hysing.is ~all"
+ns2.c.is.               84985   IN      A       213.176.143.102
+dns1.menandmice.com.    171385  IN      A       217.151.171.7
+dns2.menandmice.com.    171385  IN      A       217.151.171.21
+dns3.menandmice.com.    171385  IN      A       45.79.153.125
+[…]
+;; Query time: 97 msec
+;; SERVER: 127.0.0.1#53(127.0.0.1)
+;; WHEN: Mon Aug 15 10:49:15 CEST 2016
+;; MSG SIZE  rcvd: 719   &lt;-- DNS answer size
+</pre>
+</li>
+</ul>
+</li>
+<li>Starting with BIND 9.11, BIND 9 can be configured to only return the first entry of an matching ANY query
+<ul class="org-ul">
+<li>this mitigates the problem without causing breakage of older software (qmail etc)
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+options {
+        [...]
+       minimal-any yes;
+};
+</pre>
+<ul class="org-ul">
+<li>Same query as before with minimal-any enabled (note the use of <code>+notcp</code>):
+</li>
+</ul>
+<pre class="example">
+$ dig menandmice.com ANY +notcp
+; &lt;&lt;&gt;&gt; DiG 9.11.0b3 &lt;&lt;&gt;&gt; menandmice.com any
+;; global options: +cmd
+;; Got answer:
+;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 32396
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+; COOKIE: f0a6921ce7023ebc646d789357b1837a0962c60d534b251e (good)
+;; QUESTION SECTION:
+;menandmice.com.                        IN      ANY
+
+;; ANSWER SECTION:
+menandmice.com.	   60   IN   AAAA   2a01:7e00::f03c:91ff:fe89:ed54
+
+;; Query time: 0 msec
+;; SERVER: 127.0.0.1#53(127.0.0.1)
+;; WHEN: Mon Aug 15 10:55:22 CEST 2016
+;; MSG SIZE  rcvd: 123
+</pre>
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Temporarily remove <code>minimal-responses</code> and <code>minimal-any</code> from the
+configuration of <code>nsNNb</code> (secondary server), check the
+configuration and reload the BIND 9 DNS server
+</li>
+<li>Query your zone <code>zoneNN.dnslab.org</code> from the primary server <code>nsNNa</code>
+and from the secondary server <code>nsNNb</code>. Do you see a difference?
+Write the size of the responses of both queries in the chat.
+</li>
+<li>Send the following query towards both authoritative servers: write
+the size of the responses to the chat
+<pre class="example">
+dig @nsNNa.dnslab.org zoneNN.dnslab.org ANY +notcp
+dig @nsNNb.dnslab.org zoneNN.dnslab.org ANY +notcp
+</pre>
+</li>
+<li>Re-enable  <code>minimal-responses</code> and <code>minimal-any</code> on <code>nsNNb</code>.
+Verify with a <code>dig</code> command that these functions are now enabled
+again.
+</li>
+</ul>
+
+<p>
+</div>
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-10-3" class="outline-3">
+<h3 id="sec-10-3"><span class="section-number-3">10.3</span> Empty Zones - Protecting the Internet from Useless Queries</h3>
+<div class="outline-text-3" id="text-10-3">
+</div><div id="outline-container-sec-10-3-1" class="outline-4">
+<h4 id="sec-10-3-1"><span class="section-number-4">10.3.1</span> RFC 1918</h4>
+<div class="outline-text-4" id="text-10-3-1">
+<ul class="org-ul">
+<li>RFC 1918 defines private address space that should not be routed on the Internet.
+
+<table class="table table-striped table-bordered table-hover table-condensed">
+
+
+<colgroup>
+<col  class="left">
+
+<col  class="left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="text-left">Network</th>
+<th scope="col" class="text-left">Size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="text-left">10.0.0.0 - 10.255.255.255</td>
+<td class="text-left">(10/8 prefix)</td>
+</tr>
+
+<tr>
+<td class="text-left">172.16.0.0 - 172.31.255.255</td>
+<td class="text-left">(172.16/12 prefix)</td>
+</tr>
+
+<tr>
+<td class="text-left">192.168.0.0 - 192.168.255.255</td>
+<td class="text-left">(192.168/16 prefix)</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-10-3-2" class="outline-4">
+<h4 id="sec-10-3-2"><span class="section-number-4">10.3.2</span> RFC 6890, RFC 8190</h4>
+<div class="outline-text-4" id="text-10-3-2">
+<ul class="org-ul">
+<li>There are network blocks, beyond those from RFC 1918, that also
+shouldn't be routed on the Internet.
+<ul class="org-ul">
+<li>IPv4 APIPA
+</li>
+<li>IPv6 Unique Local Addresses
+</li>
+<li>Documentation addresses
+</li>
+</ul>
+</li>
+<li>All such address blocks are collected in <a href="https://tools.ietf.org/html/rfc6890">RFC 6890: Special-Purpose
+IP Address Registries</a> (2013-04) with updates in <a href="https://tools.ietf.org/html/rfc8190">RFC 8190 - Updates
+to the Special-Purpose IP Address Registries</a> (2017-06)
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-10-3-3" class="outline-4">
+<h4 id="sec-10-3-3"><span class="section-number-4">10.3.3</span> Useless Traffic &amp; Useless Queries</h4>
+<div class="outline-text-4" id="text-10-3-3">
+<ul class="org-ul">
+<li>Packets on the Internet with a non-routeable address cause issues.
+<ul class="org-ul">
+<li>Organizations should prevent such packets from leaving their networks.
+</li>
+</ul>
+</li>
+<li><b>Likewise, unanswerable DNS queries cause issues and should not be allowed to reach the Internet.</b>
+<ul class="org-ul">
+<li>Not all useless queries are for reverse name space (PTRs), but the problem is universal for reverse space.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-10-3-4" class="outline-4">
+<h4 id="sec-10-3-4"><span class="section-number-4">10.3.4</span> Automatic Empty Zones</h4>
+<div class="outline-text-4" id="text-10-3-4">
+<ul class="org-ul">
+<li>BIND 9.16 creates 100 empty zones for reverse name spaces.
+<ul class="org-ul">
+<li>The domains are in the <code>in-addr.arpa</code> and <code>ipv6.arpa</code>.
+</li>
+<li>The zones are not created if recursion is disabled.
+
+<ul class="org-ul">
+<li>RFC 1918: Address Allocation for Private Internets
+</li>
+<li>RFC 4193: Unique Local IPv6 Unicast Addresses
+</li>
+<li>RFC 5737: IPv4 Address Blocks Reserved for Documentation
+</li>
+<li>RFC 6598: IANA-Reserved IPv4 Prefix for Shared Address Space
+</li>
+<li>IPv6 local address (locally assigned)
+</li>
+<li>IPv6 link local addresses
+</li>
+<li>IPv6 loopback address
+</li>
+<li>the IPv6 unknown address
+
+<pre class="example">
+12-Oct-2020 06:48:27.002 automatic empty zone: 10.IN-ADDR.ARPA
+12-Oct-2020 06:48:27.002 automatic empty zone: 16.172.IN-ADDR.ARPA
+12-Oct-2020 06:48:27.002 automatic empty zone: 17.172.IN-ADDR.ARPA
+12-Oct-2020 06:48:27.002 automatic empty zone: 18.172.IN-ADDR.ARPA
+...
+</pre>
+
+<table class="table table-striped table-bordered table-hover table-condensed">
+
+
+<colgroup>
+<col  class="left">
+
+<col  class="left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="text-left">Network/Prefix</th>
+<th scope="col" class="text-left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="text-left">127.in-addr.arpa.</td>
+<td class="text-left">IPv4 loopback</td>
+</tr>
+
+<tr>
+<td class="text-left">2.0.2.192.in-addr.arpa.</td>
+<td class="text-left">IPv4 Documentation</td>
+</tr>
+
+<tr>
+<td class="text-left">100.51.198.in-addr.arpa.</td>
+<td class="text-left">IPv4 Documentation</td>
+</tr>
+
+<tr>
+<td class="text-left">113.0.203.in-addr.arpa.</td>
+<td class="text-left">IPv4 Documentation</td>
+</tr>
+
+<tr>
+<td class="text-left">255.255.255.255.in-addr.arpa.</td>
+<td class="text-left">IPv4 Broadcast</td>
+</tr>
+
+<tr>
+<td class="text-left">0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.IP6.ARPA</td>
+<td class="text-left">IPv6 unspecified address (::)</td>
+</tr>
+
+<tr>
+<td class="text-left">D.F.ip6.arpa.</td>
+<td class="text-left">Unique Local Address Block</td>
+</tr>
+
+<tr>
+<td class="text-left">8.E.F.ip6.arpa.</td>
+<td class="text-left">Link Local Addresses</td>
+</tr>
+
+<tr>
+<td class="text-left">9.E.F.ip6.arpa.</td>
+<td class="text-left">Link Local Addresses</td>
+</tr>
+
+<tr>
+<td class="text-left">A.E.F.ip6.arpa.</td>
+<td class="text-left">Link Local Addresses</td>
+</tr>
+
+<tr>
+<td class="text-left">B.E.F.ip6.arpa.</td>
+<td class="text-left">Link Local Addresses</td>
+</tr>
+
+<tr>
+<td class="text-left">8.B.D.0.1.0.0.2.ip6.arpa.</td>
+<td class="text-left">IPv6 Documentation Addresses</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+
+<li>BIND 9.16 adds empty zones for <code>home.arpa</code> and
+<code>empty.as112.arpa</code>:
+<pre class="example">
+12-Oct-2020 06:48:27.003 automatic empty zone: EMPTY.AS112.ARPA
+12-Oct-2020 06:48:27.003 automatic empty zone: HOME.ARPA
+</pre>
+</li>
+<li>BIND 9.20 adds empty zones for <code>resolver.arpa</code> (<a href="https://datatracker.ietf.org/doc/rfc9462/">RFC 9462 - Discovery of Designated Resolvers</a>)
+<pre class="example">
+Oct 29 08:32:16 dnsr07 named[2952]: automatic empty zone: RESOLVER.ARPA
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-10-3-5" class="outline-4">
+<h4 id="sec-10-3-5"><span class="section-number-4">10.3.5</span> Other Useless Queries</h4>
+<div class="outline-text-4" id="text-10-3-5">
+<ul class="org-ul">
+<li>Other empty zones have to be manually configured.
+<ul class="org-ul">
+<li>Doing so improves Internet security!
+</li>
+<li>The root servers see a high percentage of useless queries (see below).
+</li>
+<li>These are for TLDs that aren't delegated.
+
+
+<figure>
+<p><img src="./img/Root-QTYPE-TLD.png" class="img-responsive" alt="Root-QTYPE-TLD.png">
+</p>
+</figure>
+
+<p>
+<a href="https://stats.dns.icann.org/stats/d/wom-ext-5minagg-qtype-vs-tld/qtype-vs-tld?orgId=1&amp;from=1602390637038&amp;to=1602473437038&amp;var-Server=IMRS&amp;var-Region=All&amp;var-Country=All&amp;var-City=All&amp;var-Instance=All&amp;theme=light">ICANN Stats: QTYPE for most popular Undelegated TLDs queried</a>
+</p>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-10-3-6" class="outline-4">
+<h4 id="sec-10-3-6"><span class="section-number-4">10.3.6</span> Stopping Useless Queries</h4>
+<div class="outline-text-4" id="text-10-3-6">
+<ul class="org-ul">
+<li>Stop unanswerable queries by configuring the DNS resolver as
+authoritative for unanswerable zones.
+<ul class="org-ul">
+<li>The zones are empty, so the server answers all queries with
+<code>NXDOMAIN</code>.
+</li>
+<li>Empty zones are not a violation of the recommendation to keep
+authoritative and recursive servers independent.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-10-3-7" class="outline-4">
+<h4 id="sec-10-3-7"><span class="section-number-4">10.3.7</span> Additional Empty Zones</h4>
+<div class="outline-text-4" id="text-10-3-7">
+<ul class="org-ul">
+<li>These zones are not among the automatically empty in BIND, and should be configured as empty:
+<table class="table table-striped table-bordered table-hover table-condensed">
+
+
+<colgroup>
+<col  class="left">
+
+<col  class="left">
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="text-left">Zone</th>
+<th scope="col" class="text-left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="text-left">local</td>
+<td class="text-left">multicast DNS (Apple Bonjour, Avahi, systemd-sd)</td>
+</tr>
+
+<tr>
+<td class="text-left">belkin</td>
+<td class="text-left">used in Belkin network equipment</td>
+</tr>
+
+<tr>
+<td class="text-left">home</td>
+<td class="text-left">local TLD</td>
+</tr>
+
+<tr>
+<td class="text-left">localdomain</td>
+<td class="text-left">default local Domain used in Red Hat Linux</td>
+</tr>
+
+<tr>
+<td class="text-left">lan</td>
+<td class="text-left">local TLD, used in some CPE equipment</td>
+</tr>
+
+<tr>
+<td class="text-left">corp</td>
+<td class="text-left">local TLD</td>
+</tr>
+
+<tr>
+<td class="text-left">domain</td>
+<td class="text-left">local TLD</td>
+</tr>
+
+<tr>
+<td class="text-left">internal</td>
+<td class="text-left">local TLD</td>
+</tr>
+
+<tr>
+<td class="text-left">dhcp</td>
+<td class="text-left">local TLD</td>
+</tr>
+
+<tr>
+<td class="text-left">localhost</td>
+<td class="text-left">the "localhost" name</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-10-3-8" class="outline-4">
+<h4 id="sec-10-3-8"><span class="section-number-4">10.3.8</span> An Empty Zone File</h4>
+<div class="outline-text-4" id="text-10-3-8">
+<ul class="org-ul">
+<li>Only MNAME (name-of-server) &amp; RNAME (contact-email / Responsible person) are of real interest.
+</li>
+<li>The SOA's TTL and the negative TTL, as well, but are likely to be generic.
+<pre class="example">
+@   10800   IN SOA &lt;name-of-server&gt;. &lt;contact-email&gt;. 1 3600 1200 604800 10800
+@   10800   IN NS  &lt;name-of-server&gt;.
+</pre>
+</li>
+<li>The empty zone is then used in <code>named.conf</code>.
+<pre class="example">
+zone "corp"   { type primary; file "empty-zone.db"; };
+zone "local"  { type primary; file "empty-zone.db"; };
+zone "belkin" { type primary; file "empty-zone.db"; };
+[...]
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-10-3-9" class="outline-4">
+<h4 id="sec-10-3-9"><span class="section-number-4">10.3.9</span> Extra Empty Zones</h4>
+<div class="outline-text-4" id="text-10-3-9">
+<ul class="org-ul">
+<li>Since BIND 9.5, empty zones can be configured in named.conf without a zone file.
+<pre class="example">
+zone "zonename" {
+    type primary;
+    database "_builtin empty &lt;nameserver&gt; &lt;contact&gt;";
+};
+</pre>
+<ul class="org-ul">
+<li><code>nameserver</code> = MNAME for SOA
+</li>
+<li><code>contact</code> = RNAME for SOA
+</li>
+</ul>
+</li>
+</ul>
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Work on the DNS resolver machine <code>dnsrNN</code>
+</li>
+<li>Clear the cache with <code>rndc flush</code>
+</li>
+<li>Test a query for a popular non-existing TLD against the local BIND
+9 and write down the response time
+</li>
+</ul>
+<pre class="example">
+$ dig test.internal @localhost
+</pre>
+<ul class="org-ul">
+<li>Add an empty zone for the TLD <code>internal</code> to the BIND 9
+configuration in <code>named.conf</code>
+</li>
+<li>Check the configuration, reload the BIND 9 DNS server and test
+again. What is the response time now. Write the delta into the chat.
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+<ol class="org-ol"><li><a id="sec-10-3-9-1" name="sec-10-3-9-1"></a>Solution:<br ><div class="outline-text-5" id="text-10-3-9-1">
+<ul class="org-ul">
+<li>In <code>/etc/isc-bind/named.conf</code> (the "." at the end of the domain names are important!):
+</li>
+</ul>
+<pre class="example">
+zone "internal" {
+    type primary;
+    database "_builtin empty dnsr06.dnslab.org. hostmaster.dnslab.org.";
+};
+</pre>
+</div>
+</li></ol>
+</div>
+</div>
+<div id="outline-container-sec-10-4" class="outline-3">
+<h3 id="sec-10-4"><span class="section-number-3">10.4</span> Prefetch</h3>
+<div class="outline-text-3" id="text-10-4">
+</div><div id="outline-container-sec-10-4-1" class="outline-4">
+<h4 id="sec-10-4-1"><span class="section-number-4">10.4.1</span> Query Response Time</h4>
+<div class="outline-text-4" id="text-10-4-1">
+<ul class="org-ul">
+<li>Quicker response time is a frequent goal of DNS deployment changes
+and of new BIND versions.
+</li>
+<li>Prefetch makes recursive servers respond quicker for often queried
+RRs.
+<ul class="org-ul">
+<li>Not all answers are quicker, but response times are more
+uniformly quick.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-10-4-2" class="outline-4">
+<h4 id="sec-10-4-2"><span class="section-number-4">10.4.2</span> Frequently Queried RRs</h4>
+<div class="outline-text-4" id="text-10-4-2">
+<ul class="org-ul">
+<li>Consider a resolver that is queried for the same RR.
+<ul class="org-ul">
+<li>The first query takes long, because an authoritative server must
+be queried.
+</li>
+<li>Subsequent queries are fast; answers are in the cache.
+</li>
+<li>The first query after the RRs TTL expires, takes longer, as an
+authoritative server is again queried.
+<ul class="org-ul">
+<li>All queries arriving before the RR is re-cached, take longer.
+</li>
+<li>It is these queries that prefetch speeds up.
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-10-4-3" class="outline-4">
+<h4 id="sec-10-4-3"><span class="section-number-4">10.4.3</span> Prefetch</h4>
+<div class="outline-text-4" id="text-10-4-3">
+<ul class="org-ul">
+<li>Prefetch assures that frequent queries are consistently answered
+from the cache.
+</li>
+<li>Prefetch was introduced in BIND version 9.10.
+</li>
+<li>Prefetch is configured in <code>options {}</code>, it cannot be set per zone.
+<pre class="example">
+options {
+  [...]
+  prefetch 8 59;
+  [...]
+};
+</pre>
+</li>
+<li>The first number is the trigger (seconds).
+</li>
+<li>The second number is the eligibility (seconds).
+</li>
+<li>Prefetch is enabled by default in BIND 9.10+
+<ul class="org-ul">
+<li>Default trigger value: 2s.  Default eligibility value: 9s.
+</li>
+</ul>
+</li>
+<li>Set the trigger to 0s to disable prefetch.
+<ul class="org-ul">
+<li>The maximum trigger value is 10s.
+</li>
+</ul>
+</li>
+<li>Setting it higher is accepted, but will silently be 10s.
+</li>
+</ul>
+</div>
+<ol class="org-ol"><li><a id="sec-10-4-3-1" name="sec-10-4-3-1"></a>Prefetch Trigger<br ><div class="outline-text-5" id="text-10-4-3-1">
+<pre class="example">
+prefetch 8 59;
+</pre>
+<ul class="org-ul">
+<li>A query arriving when the remaining TTL is under the trigger,
+causes the server to re-query the RR.
+</li>
+<li>This has no effect on the query that triggers the prefetch.
+</li>
+<li>Subsequent queries benefit.
+</li>
+<li>For frequently queried RRs, answers will more consistently come
+from the cache.
+</li>
+</ul>
+</div>
+</li>
+<li><a id="sec-10-4-3-2" name="sec-10-4-3-2"></a>Prefetch Eligibility<br ><div class="outline-text-5" id="text-10-4-3-2">
+<pre class="example">
+prefetch 8 59;
+</pre>
+<ul class="org-ul">
+<li>Only RRs with an initial TTL greater than the eligibility, can be
+prefetched.
+</li>
+<li>In the example, a TTL of 60s or greater is eligible for prefetch.
+</li>
+<li>The eligibility must be at least 6s greater than the trigger, or it
+will be silently increased.
+</li>
+</ul>
+</div>
+</li></ol>
+</div>
+</div>
+</div>
+</div></div></div>
+<footer id="postamble" class="">
+<div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
+<p class="author">Author: BlueCat Learning Team</p>
+<p class="date">Created: 2024-10-30 Wed 11:53</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
+</div>
+</footer>
+</body>
+</html>
