@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-31 Thu 20:06 -->
+<!-- 2024-10-31 Thu 20:23 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -237,6 +237,8 @@ $(function() {
 </li>
 <li><a href="#sec-23">23. Rebind protection</a></li>
 <li><a href="#sec-24">24. Stub zone</a></li>
+<li><a href="#sec-25">25. Control minimum cache times</a></li>
+<li><a href="#sec-26">26. Local Root Mirror</a></li>
 </ul>
 </div>
 </nav>
@@ -8331,11 +8333,99 @@ $ dig @localhost -x 192.168.1.20
 </div>
 </div>
 </div>
+
+<div id="outline-container-sec-25" class="outline-2">
+<h2 id="sec-25"><span class="section-number-2">25</span> Control minimum cache times</h2>
+<div class="outline-text-2" id="text-25">
+<ul class="org-ul">
+<li>The options <code>min-cache-ttl</code> and <code>min-ncache-ttl</code> can be used on a
+global level to control the minimum time a resource record should
+be cached for. This will overwrite TTLs in the received DNS
+resource records that have a TTL lower than the configured values.
+</li>
+<li><code>min-cache-ttl</code> - This sets the minimum time for which the server
+caches ordinary (positive) answers, in seconds. For convenience,
+TTL-style time unit suffixes may be used to specify the value. It
+also accepts ISO 8601 duration formats.
+<ul class="org-ul">
+<li>The default <code>min-cache-ttl</code> is 0 seconds. <code>min-cache-ttl</code> cannot
+exceed 90 seconds and is truncated to 90 seconds if set to a
+greater value.
+</li>
+</ul>
+</li>
+
+<li><code>min-ncache-ttl</code> - To reduce network traffic and increase
+performance, the server stores negative answers. <code>min-ncache-ttl</code>
+is used to set a minimum retention time for these answers in the
+server in seconds. For convenience, TTL-style time unit suffixes
+may be used to specify the value. It also accepts ISO 8601 duration
+formats.
+<ul class="org-ul">
+<li>The default <code>min-ncache-ttl</code> is 0 seconds. <code>min-ncache-ttl</code>
+cannot exceed 90 seconds and is truncated to 90 seconds if set to
+a greater value.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-26" class="outline-2">
+<h2 id="sec-26"><span class="section-number-2">26</span> Local Root Mirror</h2>
+<div class="outline-text-2" id="text-26">
+<ul class="org-ul">
+<li>Having a local mirror copy of the root zone can speed up name
+resolution
+<ul class="org-ul">
+<li>It also helps with the privacy of DNS queries
+</li>
+</ul>
+</li>
+<li>BIND supports a local copy of the root zone as defined in <a href="https://tools.ietf.org/html/rfc8806">RFC 8806
+"Running a Root Server Local to a Resolver"</a>
+</li>
+<li>A default list of primary servers for the root zone is built into
+named, allowing the <code>primaries</code> statement to be omitted when
+configuring an IANA root zone mirror.
+</li>
+</ul>
+<pre class="example">
+// Root Mirror Zone
+zone "." {
+        type mirror;
+        file "root.zone";
+};
+</pre>
+</div>
+<div id="outline-container-sec-26-0-1" class="outline-4">
+<h4 id="sec-26-0-1"><span class="section-number-4">26.0.1</span> Exercise</h4>
+<div class="outline-text-4" id="text-26-0-1">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Configure a local mirror copy of the root zone in your DNS resolver
+</li>
+<li>Check the configuration and reload the BIND 9 server
+</li>
+<li>Check the zone-transfer log for the zone transfer of the root
+zone. What is the current SOA serial number of the root zone as
+reported in the transfer log? Write the answer in the chat.
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+</div>
 </div></div></div>
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-31 Thu 20:06</p>
+<p class="date">Created: 2024-10-31 Thu 20:23</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
