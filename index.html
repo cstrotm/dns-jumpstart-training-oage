@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-31 Thu 17:53 -->
+<!-- 2024-10-31 Thu 19:00 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -193,6 +193,31 @@ $(function() {
 <li><a href="#sec-19-6">19.6. RRL: all-per-second</a></li>
 <li><a href="#sec-19-7">19.7. RRL: window</a></li>
 <li><a href="#sec-19-8">19.8. RRL: logging</a></li>
+</ul>
+</li>
+<li><a href="#sec-20">20. Response Policy Zones (RPZ)</a>
+<ul class="nav">
+<li><a href="#sec-20-1">20.1. Policy Triggers Based on The Query</a></li>
+<li><a href="#sec-20-2">20.2. Policy Triggers Based on The Response</a></li>
+<li><a href="#sec-20-3">20.3. Policy Actions</a></li>
+<li><a href="#sec-20-4">20.4. RPZ configuration</a></li>
+<li><a href="#sec-20-5">20.5. RPZ: Zone File</a></li>
+<li><a href="#sec-20-6">20.6. Client IP Address Trigger</a></li>
+<li><a href="#sec-20-7">20.7. Response IP Address Trigger</a></li>
+<li><a href="#sec-20-8">20.8. NS Domain-Name and NS IP Triggers</a></li>
+<li><a href="#sec-20-9">20.9. RPZ - the full example</a></li>
+<li><a href="#sec-20-10">20.10. RPZ Data Feeds</a></li>
+<li><a href="#sec-20-11">20.11. Response-Policies without RPZ</a></li>
+<li><a href="#sec-20-12">20.12. RPZ Notes</a></li>
+<li><a href="#sec-20-13">20.13. Exercise</a></li>
+</ul>
+</li>
+<li><a href="#sec-21">21. BIND 9 Views</a>
+<ul class="nav">
+<li><a href="#sec-21-1">21.1. Matching a view</a></li>
+<li><a href="#sec-21-2">21.2. Views example with zones</a></li>
+<li><a href="#sec-21-3">21.3. Views and Zone Transfer</a></li>
+<li><a href="#sec-21-4">21.4. View Maintenance</a></li>
 </ul>
 </li>
 </ul>
@@ -7206,11 +7231,687 @@ logging {
 </div>
 </div>
 </div>
+
+<div id="outline-container-sec-20" class="outline-2">
+<h2 id="sec-20"><span class="section-number-2">20</span> Response Policy Zones (RPZ)</h2>
+<div class="outline-text-2" id="text-20">
+<ul class="org-ul">
+<li>RPZ is an RDNS security mechanism to protect queriers from Internet dangers.
+<ul class="org-ul">
+<li>It is like a firewall. RPZ prevents access to domain names
+identified as disreputable.
+</li>
+</ul>
+</li>
+<li>A domain name identified as disreputable triggers a policy with an
+action that denies normal resolution.
+<ul class="org-ul">
+<li>E.G. a domain name in a URL known for having malware, gets an
+NXDOMAIN response.
+</li>
+</ul>
+</li>
+<li>RPZs are already being widely implemented, but are still only a
+draft RFC: <a href="https://tools.ietf.org/html/draft-vixie-dnsop-dns-rpz">https://tools.ietf.org/html/draft-vixie-dnsop-dns-rpz</a>
+(expired 12/2018)
+</li>
+<li>RPZs are fully supported in BIND 9.10.
+<ul class="org-ul">
+<li>BIND 9.8.1+ had an experimental implementation.
+</li>
+</ul>
+</li>
+<li>Other RPZ implementations: PowerDNS Recursor, Unbound 1.11+,
+policy.rpz (Knot) - partial support, commercial DNS products, &#x2026;
+</li>
+<li>RPZ policies are implemented in zone files.
+<ul class="org-ul">
+<li>RPZs have some unique values, but conform to Master File Format.
+</li>
+<li>The RPZ zones are deployed on DNS resolver, not on auth servers.
+</li>
+<li>A DNS resolver is usually the secondary to a central RPZ
+management server that hosts the primary RPZ zones
+</li>
+<li>There is no delegation and the NS RRs are unused.
+</li>
+<li>An RPZ typically has policies for unrelated names. E.G.:
+<pre class="example">
+www.verybad.org 30 IN CNAME google.com.
+evilstuff.net   30 IN CNAME google.com.
+</pre>
+<ul class="org-ul">
+<li>Note: the owner names in the example above are not fully
+qualified (FQDN)
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>There are five triggers for an RPZ policy.
+<ul class="org-ul">
+<li>Two are based on the query.
+</li>
+<li>Three are based on the RDATA of the response.
+</li>
+</ul>
+</li>
+<li>For some of the triggers, special labels are required in the RR owner name.
+</li>
+<li>There are six actions that a policy can trigger.
+<ul class="org-ul">
+<li>NXDOMAIN is one, the others are covered soon.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-20-1" class="outline-3">
+<h3 id="sec-20-1"><span class="section-number-3">20.1</span> Policy Triggers Based on The Query</h3>
+<div class="outline-text-3" id="text-20-1">
+<ul class="org-ul">
+<li><b>QNAME</b>: The queried domain-name triggers the policy.
+<ul class="org-ul">
+<li>This is the most common trigger.
+</li>
+<li>No special label is required for the owner name.
+</li>
+</ul>
+</li>
+<li><b>Client IP</b>: The client's address triggers the policy.
+<ul class="org-ul">
+<li>The label <code>.rpz-client-ip</code> is used in the owner name.
+</li>
+</ul>
+</li>
+</ul>
+
+<figure>
+<p><img src="./img/RPZ-01.png" class="img-responsive" alt="RPZ-01.png">
+</p>
+</figure>
+</div>
+</div>
+<div id="outline-container-sec-20-2" class="outline-3">
+<h3 id="sec-20-2"><span class="section-number-3">20.2</span> Policy Triggers Based on The Response</h3>
+<div class="outline-text-3" id="text-20-2">
+<ul class="org-ul">
+<li><b>Response IP</b>: The IP address in the RR triggers the policy.
+<ul class="org-ul">
+<li>This is only applicable to <code>A</code> &amp; <code>AAAA</code> RRs.
+</li>
+<li>It is only applicable to the Answer section of the DNS message.
+</li>
+<li>The label <code>.rpz-ip</code> is used in the owner name.
+</li>
+</ul>
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/RPZ-02.png" class="img-responsive" alt="RPZ-02.png">
+</p>
+</figure>
+
+<ul class="org-ul">
+<li><b>NSDNAME</b>: Any NS referral in the path to getting a final response
+triggers the policy.
+<ul class="org-ul">
+<li>The label <code>.rpz-nsdname</code> is used in the owner name.
+</li>
+</ul>
+</li>
+<li><b>NSIP</b>: An IP address of a NS in the path of getting a final
+response triggers the policy.
+<ul class="org-ul">
+<li>The label <code>.rpz-nsip</code> is used in the owner name.
+</li>
+</ul>
+</li>
+</ul>
+
+<p>
+<img id="RPZ-trigger" class="img-responsive" src="img/RPZ-trigger-00.png"></ p><input type="button" onclick="NextPage('RPZ-trigger','4')" value=">" /><input type="button" onclick="ResetSlides('RPZ-trigger')" value="O" /><input type="button" onclick="PrevPage('RPZ-trigger')" value="<" />
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-20-3" class="outline-3">
+<h3 id="sec-20-3"><span class="section-number-3">20.3</span> Policy Actions</h3>
+<div class="outline-text-3" id="text-20-3">
+<ul class="org-ul">
+<li>Six actions are available when a policy is triggered:
+<ul class="org-ul">
+<li><b>Respond with local data trapping the query in a walled garden.</b>
+(Most commonly this is a CNAME.)
+</li>
+<li><b>Respond NXDOMAIN</b>
+</li>
+<li>Respond NOERROR/NODATA
+</li>
+<li>Respond normally (passthru)
+</li>
+<li>Respond with the TC flag
+</li>
+<li>Drop the query
+</li>
+</ul>
+</li>
+<li>The bold actions are most common.
+</li>
+<li>When more than one action could apply (e.g. NXDOMAIN and passthru),
+precedence rules select which is used. The rules are beyond the
+scope of this course.
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-20-4" class="outline-3">
+<h3 id="sec-20-4"><span class="section-number-3">20.4</span> RPZ configuration</h3>
+<div class="outline-text-3" id="text-20-4">
+<ul class="org-ul">
+<li>RPZ in <code>named.conf</code>
+<pre class="example">
+options {
+ [...]
+ response-policy {
+   zone "rpz-z01";
+ }; // up to 32 RPZs
+ [...]
+};
+
+[...]
+zone "rpz-z01" {type primary; file "rpz-z01.file";};
+[...]
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-20-5" class="outline-3">
+<h3 id="sec-20-5"><span class="section-number-3">20.5</span> RPZ: Zone File</h3>
+<div class="outline-text-3" id="text-20-5">
+<ul class="org-ul">
+<li>The response policy zone is not delegated and NS RRs are unused.
+<ul class="org-ul">
+<li>The draft RFC recommends the convention of using <code>localhost.</code>
+</li>
+</ul>
+</li>
+<li>Other than the <code>MNAME</code>, all fields in the <code>SOA</code> should be valid and
+reasonable for the sake of any secondary using the RPZ.
+</li>
+</ul>
+<pre class="example">
+$TTL 1h
+$ORIGIN rpz-z01.
+@  SOA localhost. pm.example.com. 1 4h 1h 8w 1h
+   NS  localhost.
+</pre>
+<ul class="org-ul">
+<li>The domain name below is being declared disreputable.
+<ul class="org-ul">
+<li>The owner names should NOT be FQDNs!
+</li>
+</ul>
+</li>
+<li>A <code>CNAME</code> to the root, <code>.</code>, is RPZ's code for an <code>NXDOMAIN</code> action.
+<pre class="example">
+$TTL 1h
+$ORIGIN rpz-z01.
+@                     SOA localhost. pm.example.com. 1 4h 1h 8w 1h
+                      NS  localhost.
+evilstuff.com         CNAME        .      ; NXDOMAIN
+</pre>
+</li>
+<li>Wildcards usage in RPZ files is common.
+<ul class="org-ul">
+<li>Also match everything under <code>evilstuff.com</code>.
+</li>
+</ul>
+<pre class="example">
+*.evilstuff.com       CNAME .      ; NXDOMAIN
+</pre>
+</li>
+<li>A CNAME to <code>*.</code> is RPZ's code for a <code>NODATA</code> action.
+<pre class="example">
+badplace.us           CNAME *.     ; NOERROR/NODATA
+*.badplace.us         CNAME *.     ; NOERROR/NODATA
+</pre>
+</li>
+<li><b>Local Data</b> is a standard RR without any special RPZ
+encoding. Most commonly, a <code>CNAME</code> is used to point to a walled
+garden.
+<pre class="example">
+vile.org              CNAME fbi.gov. ; redirect
+*.vile.org            CNAME fbi.gov. ; redirect
+</pre>
+</li>
+<li>A <code>CNAME</code> to the RPZ special target <code>rpz-drop.</code> makes the RDNS server
+to simply drop the query (no response is sent).
+<ul class="org-ul">
+<li>The querier will eventually time-out.
+</li>
+</ul>
+<pre class="example">
+yuck.reddit.com       CNAME rpz-drop.     ; drop
+</pre>
+</li>
+<li>A <code>CNAME</code> to the RPZ special target <code>rpz-tcp-only.</code> makes the DNS
+resolver server set the <code>TC</code> flag (truncated) in the response.
+<ul class="org-ul">
+<li>A legitimate querier will re-query over TCP. This is another tool
+to mitigate reflection attacks.
+</li>
+</ul>
+<pre class="example">
+innocent.com          CNAME rpz-tcp-only. ; truncate
+*.innocent.com        CNAME rpz-tcp-only. ; truncate
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-20-6" class="outline-3">
+<h3 id="sec-20-6"><span class="section-number-3">20.6</span> Client IP Address Trigger</h3>
+<div class="outline-text-3" id="text-20-6">
+<ul class="org-ul">
+<li>To trigger on the querier's IP, use the <code>.rpz-client-ip</code>
+encoding. The IPv4 address is reversed like in a PTR RR, but an
+additional first label indicates the netmask.
+<pre class="example">
+16.0.0.31.172.rpz-client-ip        CNAME   rpz-passthru.
+12.0.0.16.172.rpz-client-ip        CNAME   rpz-drop.
+32.1.0.0.127.rpz-client-ip         CNAME   rpz-passthru.
+</pre>
+<ul class="org-ul">
+<li>Drop traffic from all class B private clients 172.16/12 except
+the 172.31/16 block which is not subject to any policies. The
+127.0.0.1 host is also except for policies, which is useful for
+testing.
+</li>
+</ul>
+</li>
+<li>IPv6 addresses are reversed per four hex-digit field. Colons are
+replaced by periods. The double-colon for zero compression with
+"zz". Zero suppression and zero compression are required. The
+addresses shown are: <code>2001:db8:bad::/64</code> <code>::1/128</code>
+<pre class="example">
+64.zz.bad.db8.2001.rpz-client-ip   CNAME   rpz-drop.
+128.1.zz.rpz-client-ip             CNAME   rpz-passthru.
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-20-7" class="outline-3">
+<h3 id="sec-20-7"><span class="section-number-3">20.7</span> Response IP Address Trigger</h3>
+<div class="outline-text-3" id="text-20-7">
+<ul class="org-ul">
+<li>If the given IP addresses appear in <code>A</code> or <code>AAAA</code> answer sections,
+an action is triggered.
+<ul class="org-ul">
+<li>In the example, the IPs are associated with dangers on the
+Internet, and get an <code>NXDOMAIN</code>
+response. <code>192.0.2.99/32</code> <code>2001:db8:ea::/48</code>
+</li>
+</ul>
+<pre class="example">
+32.99.2.0.192.rpz-ip               CNAME   .   ; NXDOMAIN
+48.zz.ea.db8.2001.rpz-ip           CNAME   .   ; NXDOMAIN
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-20-8" class="outline-3">
+<h3 id="sec-20-8"><span class="section-number-3">20.8</span> NS Domain-Name and NS IP Triggers</h3>
+<div class="outline-text-3" id="text-20-8">
+<ul class="org-ul">
+<li>If a referral contains <code>ns1.badactor.ch</code> or a referral's <code>A</code> RR is
+<code>198.51.100.1</code>, the response will be <code>NXDOMAIN</code>.
+<pre class="example">
+ns1.badActor.ch.rpz-nsdname        CNAME   .   ; NXDOMAIN
+32.1.100.51.198.rpz-nsip           CNAME   .   ; NXDOMAIN
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-20-9" class="outline-3">
+<h3 id="sec-20-9"><span class="section-number-3">20.9</span> RPZ - the full example</h3>
+<div class="outline-text-3" id="text-20-9">
+<ul class="org-ul">
+<li>the full RPZ zone with different trigger and actions
+</li>
+</ul>
+<pre class="example">
+$TTL 1h
+$ORIGIN rpz-z01.
+@ SOA localhost. pm.example.com. 1 4h 1h 8w 1h
+  NS  localhost.
+evilstuff.com         CNAME .                             ; NXDOMAIN
+*.evilstuff.com       CNAME .                             ; NXDOMAIN
+badplace.us           CNAME *.                            ; NOERROR/NODATA
+*.badplace.us         CNAME *.                            ; NOERROR/NODATA
+vile.org              CNAME fbi.gov.                      ; redirect
+*.vile.org            CNAME fbi.gov.                      ; redirect
+yuck.reddit.com       CNAME rpz-drop.                     ; drop
+innocent.com          CNAME rpz-tcp-only.                 ; truncate
+*.innocent.com        CNAME rpz-tcp-only.                 ; truncate
+16.0.0.31.172.rpz-client-ip        CNAME   rpz-passthru.  ; permit
+12.0.0.16.172.rpz-client-ip        CNAME   rpz-drop.      ; drop
+32.1.0.0.127.rpz-client-ip         CNAME   rpz-passthru.  ; permit
+64.zz.bad.db8.2001.rpz-client-ip   CNAME   rpz-drop.      ; drop
+128.1.zz.rpz-client-ip             CNAME   rpz-passthru.  ; permit
+32.99.2.0.192.rpz-ip               CNAME   .              ; NXDOMAIN
+48.zz.ea.db8.2001.rpz-ip           CNAME   .              ; NXDOMAIN
+ns1.badActor.ch.rpz-nsdname        CNAME   .              ; NXDOMAIN
+32.1.100.51.198.rpz-nsip           CNAME   .              ; NXDOMAIN
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-20-10" class="outline-3">
+<h3 id="sec-20-10"><span class="section-number-3">20.10</span> RPZ Data Feeds</h3>
+<div class="outline-text-3" id="text-20-10">
+<ul class="org-ul">
+<li>ioc2rpz community is a portal which provides <i>free of charge</i> DNS
+Firewall (or Response Policy Zone) feeds: <a href="https://ioc2rpz.net/">https://ioc2rpz.net/</a>
+</li>
+<li>The site <a href="https://dnsrpz.info">https://dnsrpz.info</a> maintains a list of providers of reputation data.
+<ul class="org-ul">
+<li>Different techniques are used to access the feed.
+</li>
+<li>For example SpamHaus makes it available via zone transfer (AXFR/IXFR).
+</li>
+</ul>
+</li>
+<li>Prices vary. Since 2018-02 SpamHaus has a free but very
+limited service: <a href="https://www.spamhaus.org/news/article/669">https://www.spamhaus.org/news/article/669</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-20-11" class="outline-3">
+<h3 id="sec-20-11"><span class="section-number-3">20.11</span> Response-Policies without RPZ</h3>
+<div class="outline-text-3" id="text-20-11">
+<ul class="org-ul">
+<li>Limited RPZ functionality is available without RPZ.
+<ul class="org-ul">
+<li>A DNS resolver server can be authoritative for zones to block or
+wall garden.
+<ul class="org-ul">
+<li>If there are 1000 zones, the server must be authoritative for
+all 1000.
+</li>
+<li>With RPZ, only one zone is required.
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-20-12" class="outline-3">
+<h3 id="sec-20-12"><span class="section-number-3">20.12</span> RPZ Notes</h3>
+<div class="outline-text-3" id="text-20-12">
+<ul class="org-ul">
+<li>The following types must not be RPZ data:
+<ul class="org-ul">
+<li><code>SOA</code>, <code>NS</code>, <code>DNAME</code>, all DNSSEC related records
+</li>
+</ul>
+</li>
+<li>The logging category is <code>rpz</code>:
+<pre class="example">
+category "rpz" { [...] };
+</pre>
+</li>
+<li>For dynamic DNS updates (DDNS), <code>.rpz</code> must be added at the end of
+the owner name if RPZ special labels are used:
+<pre class="example">
+$TTL 30
+32.1.2.3.10.rpz-client-ip.rpz 30 CNAME rpz-passthru.
+</pre>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-20-13" class="outline-3">
+<h3 id="sec-20-13"><span class="section-number-3">20.13</span> Exercise</h3>
+<div class="outline-text-3" id="text-20-13">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Work on the recursive DNS server <code>dnsrNN</code>
+</li>
+<li>Add a new address primary zone for <code>rpz-dnslab</code>
+<pre class="example">
+zone "rpz-dnslab" {
+         type primary;
+         file "rpz-dnslab";
+};
+</pre>
+</li>
+<li>Download the zone master file for <code>rpz-dnslab</code>
+<pre class="example">
+$ curl -o /var/opt/isc/scls/isc-bind/named/data/rpz-dnslab  https://dnslab.org/dns/rpz-dnslab
+</pre>
+</li>
+<li>Configure RPZ into <code>named.conf</code>
+<pre class="example">
+options {
+  ...
+    response-policy {
+        zone "rpz-dnslab";
+    };
+};
+</pre>
+</li>
+<li>Test the configuration
+<pre class="example">
+% named-checkconf
+</pre>
+</li>
+<li>Query your recursive server for some of the names in the RPZ
+zone you downloaded and observe RCODE and responses.
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-sec-21" class="outline-2">
+<h2 id="sec-21"><span class="section-number-2">21</span> BIND 9 Views</h2>
+<div class="outline-text-2" id="text-21">
+<ul class="org-ul">
+<li>"Views" let an authoritative server send different answers to identical queries.
+<ul class="org-ul">
+<li>The response depends on the querier's source address.
+</li>
+</ul>
+</li>
+<li>For example, if a type A query comes from:
+<ul class="org-ul">
+<li>An internal IP address, respond with a private IP address.
+</li>
+<li>A public IP address, respond with a public IP address.
+</li>
+</ul>
+</li>
+<li>Each view is analogous to an independent DNS server.
+</li>
+<li>Each view is created by a separate <code>view</code> statement within <code>named.conf</code>.
+</li>
+<li>Each <code>view</code> statement is like a separate <code>named.conf</code>.
+</li>
+<li>The global <code>options</code> statement must precede views.
+</li>
+<li>Most configuration statements are allowed in views.
+<ul class="org-ul">
+<li>An <code>options</code> statement: View options are not enclosed in an
+<code>options</code> statement. They are written inside the view. View
+options override global options.
+</li>
+<li><code>zone</code> statements
+</li>
+<li><code>server</code> statements
+</li>
+<li><code>key</code> statements
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-21-1" class="outline-3">
+<h3 id="sec-21-1"><span class="section-number-3">21.1</span> Matching a view</h3>
+<div class="outline-text-3" id="text-21-1">
+<ul class="org-ul">
+<li>A server needs to select which view to send to which clients.
+</li>
+<li>Each view has a <code>match-clients</code> ACL identifying which IP addresses
+associated with the view.
+</li>
+<li>A view without <code>match-clients</code> is a match for all IP addresses,
+equivalent to: <code>match-clients { any; };</code>
+</li>
+<li>The order of views in <code>named.conf</code> is critical.
+<ul class="org-ul">
+<li>A querier's source address is compared with <code>match-clients</code> of the
+first view, second, and so on.
+</li>
+<li>When a match is found, that view is used.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-21-2" class="outline-3">
+<h3 id="sec-21-2"><span class="section-number-3">21.2</span> Views example with zones</h3>
+<div class="outline-text-3" id="text-21-2">
+<pre class="example">
+options {
+	directory "/var/named";
+	recursion no;
+};
+
+acl internal-network  { !192.168.1.11; 192.168/16; };
+
+view internal-view {
+	match-clients { internal-network; };
+	recursion yes;
+	zone "example.com" {
+		type primary;
+		// zone with private RFC 1918 addresses
+		file "internal/example.com-zone";
+	};
+};
+
+view external-view {
+	match-clients { any; };
+
+	zone "example.com" {
+		type primary;
+		// zone containing the public IP addresses
+		file "external/example.com-zone";
+	};
+};
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-21-3" class="outline-3">
+<h3 id="sec-21-3"><span class="section-number-3">21.3</span> Views and Zone Transfer</h3>
+<div class="outline-text-3" id="text-21-3">
+<ul class="org-ul">
+<li>A secondary without a view statement receives the one view that
+matches its source address.
+<ul class="org-ul">
+<li>A secondary not matching any view isn't sent any data.
+</li>
+</ul>
+</li>
+<li>Secondaries hosting multiple views, adds to the complexity of
+zone-transfer configuration.
+</li>
+<li>To transfer multiple views a different TSIG key is used for each
+view or each zone.
+<img src="./img/views-zone-transfer.png" class="img-responsive" alt="views-zone-transfer.png">
+</li>
+<li><code>transfer-source</code> and <code>transfer-source-v6</code> set a secondaries IP
+address zone-transfer query.
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-21-4" class="outline-3">
+<h3 id="sec-21-4"><span class="section-number-3">21.4</span> View Maintenance</h3>
+<div class="outline-text-3" id="text-21-4">
+<ul class="org-ul">
+<li>When changing a primary's server view, check if the change is
+required on the secondary as well.
+<ul class="org-ul">
+<li><code>named.conf</code> is not transferred between servers.
+</li>
+<li>View configuration must be synchronized manually.
+</li>
+</ul>
+</li>
+<li>If a zone in multiple views share identical RRs, use <code>$INCLUDE</code>.
+</li>
+<li>Troubleshoot and test zone transfers with dig:
+</li>
+</ul>
+<pre class="example">
+dig -b source.address @server example.com AXFR
+</pre>
+<ul class="org-ul">
+<li>Example <code>$INCLUDE</code> usage with views:
+<ul class="org-ul">
+<li>Zonefile <code>internal/example.com-zone</code>
+<pre class="example">
+$INCLUDE example.com-common
+dns1	  IN A	10.1.1.1
+mail	  IN A	10.1.2.10
+ldap	  IN A	192.168.1.100
+</pre>
+</li>
+<li>Zonefile <code>external/example.com-zone</code>
+<pre class="example">
+$INCLUDE example.com-common
+dns1	  IN A	192.0.2.1
+mail	  IN A	192.0.2.1
+ldap	  IN A	192.0.2.10
+</pre>
+</li>
+<li>File <code>example.com-common</code>
+<pre class="example">
+@		     IN SOA	dns1 hostmaster 2005010100 1d 2h 41d 1h
+@		     IN NS	dns1
+@		     IN MX	10 mail
+_ldap._tcp	IN SRV	0 0 ldap
+</pre>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
 </div></div></div>
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-31 Thu 17:53</p>
+<p class="date">Created: 2024-10-31 Thu 19:00</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
