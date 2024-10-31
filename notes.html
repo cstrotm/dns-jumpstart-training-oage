@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-31 Thu 14:45 -->
+<!-- 2024-10-31 Thu 15:11 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -162,7 +162,18 @@ $(function() {
 <li><a href="#sec-15-14">15.14. Solution: Dynamic update exercise</a></li>
 </ul>
 </li>
-<li><a href="#sec-16">16. Adding &amp; Removing Zones with RNDC</a></li>
+<li><a href="#sec-16">16. Adding &amp; Removing Zones with RNDC</a>
+<ul class="nav">
+<li><a href="#sec-16-1">16.1. Solution</a></li>
+</ul>
+</li>
+<li><a href="#sec-17">17. Automatic DNS provisioning with Catalog-Zones</a>
+<ul class="nav">
+<li><a href="#sec-17-1">17.1. Provisioning New Zones</a></li>
+<li><a href="#sec-17-2">17.2. Catalog Zone</a></li>
+<li><a href="#sec-17-3">17.3. Exercise</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </nav>
@@ -6135,18 +6146,19 @@ or reconfigured, the zone will come back!
 contains added zones. (If <code>named</code> is compiled with liblmdb,
 in an LMDB database file called <code>viewname.nzd</code> which can be
 converted to <code>.nzf</code> with <code>named-nzd2nzf</code>.)
-<pre class="example">
-% dnf remove bind-utils
-% dnf install bind9.16-utils
-</pre>
-</li>
+<ul class="org-ul">
 <li>It is read when named starts or is reloaded.
 </li>
 </ul>
 </li>
 </ul>
+</li>
+</ul>
 <pre class="example">
-% cat 3bf305731dd26307.nzf
+% cat _default.nzf
+# New zone file for view: _default
+# This file contains configuration for zones added by
+# the 'rndc addzone' command. DO NOT EDIT BY HAND.
 zone example.net {type primary; file "hosts/primaries/generic-zone"; allow-update {any;};};
 zone example.org {type primary; file "hosts/primaries/generic-zone"; allow-update {any;};};
 </pre>
@@ -6188,12 +6200,382 @@ Write answers in the chat.
 </div>
 </p>
 </div>
+<div id="outline-container-sec-16-1" class="outline-3">
+<h3 id="sec-16-1"><span class="section-number-3">16.1</span> Solution</h3>
+<div class="outline-text-3" id="text-16-1">
+<ul class="org-ul">
+<li>Adding the zone to the secondary DNS server
+</li>
+</ul>
+<pre class="example">
+% rndc addzone myzone.org '{ type secondary; primaries { &lt;ip-of-primary&gt;; }; file "myzone.org"; };'
+</pre>
+<ul class="org-ul">
+<li>NZF file:
+</li>
+</ul>
+<pre class="example">
+% ls -l /var/named/*.nzf
+-rw-r--r--. 1 named named 229 Oct 31 14:05 /var/named/_default.nzf
+</pre>
+<ul class="org-ul">
+<li>Content of the <code>.nzf</code> file
+</li>
+</ul>
+<pre class="example">
+cat /var/named/_default.nzf 
+# New zone file for view: _default
+# This file contains configuration for zones added by
+# the 'rndc addzone' command. DO NOT EDIT BY HAND.
+zone "myzone.org" { type secondary; file "myzone.org"; primaries { 134.122.39.147; }; };
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-17" class="outline-2">
+<h2 id="sec-17"><span class="section-number-2">17</span> Automatic DNS provisioning with Catalog-Zones</h2>
+<div class="outline-text-2" id="text-17">
+</div><div id="outline-container-sec-17-1" class="outline-3">
+<h3 id="sec-17-1"><span class="section-number-3">17.1</span> Provisioning New Zones</h3>
+<div class="outline-text-3" id="text-17-1">
+<ul class="org-ul">
+<li>Adding or deleting new zones can be a challenge.
+</li>
+<li>In addition to updating the primary, every secondary needs to be
+modified.
+</li>
+<li>It is intensive work for installations with many secondaries, or with
+frequent zone additions &amp; deletions.
+</li>
+<li>Many organizations have written scripts (or use tools like Ansible
+or SaltStack) for automatically modifying secondary DNS servers.
+</li>
+<li>A catalog zone provisions normal zones using standard DNS content and communication.
+<ul class="org-ul">
+<li>They are an ISC creation, new in BIND 9.11 (2016), and have been
+standardized by the IETF.
+</li>
+<li>RFC 9432: <a href="https://datatracker.ietf.org/doc/rfc9432/">DNS Catalog Zones</a>
+</li>
+<li>In addition to BIND 9, KnotDNS already has a fully functional
+implementation since version 3.0.0 (September 2020)
+</li>
+<li>PowerDNS Authoritative Server supports catalog zones since 4.7.0
+(<a href="https://doc.powerdns.com/authoritative/catalog.html">https://doc.powerdns.com/authoritative/catalog.html</a>)
+</li>
+<li>NSD: supports RFC 9432 style catalog zones since version 4.9.0
+(<a href="https://nsd.docs.nlnetlabs.nl/en/latest/catalog-zones.html">https://nsd.docs.nlnetlabs.nl/en/latest/catalog-zones.html</a>)
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-17-2" class="outline-3">
+<h3 id="sec-17-2"><span class="section-number-3">17.2</span> Catalog Zone</h3>
+<div class="outline-text-3" id="text-17-2">
+<ul class="org-ul">
+<li>A catalog zone works like a normal DNS zone.
+</li>
+<li>A catalog zone is maintained on the primary server.
+</li>
+<li>It contains zone names and configuration metadata that should exist on secondaries.
+</li>
+<li>Zones added to the catalog zone are automatically provisioned on secondaries.
+<ul class="org-ul">
+<li>Zones in a catalog zone are member zones.
+</li>
+</ul>
+</li>
+<li>A primary hosting a catalog zone, does not need to be updated to
+BIND 9.11 or later.
+<ul class="org-ul">
+<li>This is because catalog zones use standard DNS content and
+communication.
+</li>
+<li>Secondaries need to be updated so they will use a catalog zone's
+content as provision information.
+</li>
+</ul>
+</li>
+<li>A secondary will have a catalog zone for each primary.
+<ul class="org-ul">
+<li>Assuming the primary is configured with a catalog zone.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-17-2-1" class="outline-4">
+<h4 id="sec-17-2-1"><span class="section-number-4">17.2.1</span> Catalog Zone: named.conf:Primary</h4>
+<div class="outline-text-4" id="text-17-2-1">
+<ul class="org-ul">
+<li>In a primary's <code>named.conf</code>, a catalog zone is a completely normal zone.
+</li>
+<li>There are no special requirements for the configuration, nor for
+the name of the zone.
+</li>
+</ul>
+<pre class="example">
+zone "catz.dnslab.org" {
+         type primary;
+         file "catz.dnslab.org";
+};
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-17-2-2" class="outline-4">
+<h4 id="sec-17-2-2"><span class="section-number-4">17.2.2</span> Catalog Zone: Zonefile:Primary</h4>
+<div class="outline-text-4" id="text-17-2-2">
+<ul class="org-ul">
+<li>A catalog zone-file contains the SOA record and the NS records for the zone
+</li>
+<li>It must also contain a TXT record with the version number of the
+catalog zone protocol implementation
+<ul class="org-ul">
+<li>Version 1: the catalog zone protocol as it has been implemented
+in BIND 9.11
+</li>
+<li>Version 2: the catalog zone protocol as described in the Internet
+RFC and implemented in BIND 9.16
+</li>
+<li>DNS server software will ignore catalog zones with a version
+number it does not support (BIND 9 will not load a catalog zone
+without the version number TXT record)
+</li>
+</ul>
+</li>
+<li>A catalog zone has a PTR RR for each member zone. In the catalog
+zone shown, no member zones are provisioned yet. It is empty. (It
+has no PTR RRs).
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/1001-catalog-zone.png" class="img-responsive" alt="1001-catalog-zone.png">
+</p>
+</figure>
+</div>
+</div>
+
+<div id="outline-container-sec-17-2-3" class="outline-4">
+<h4 id="sec-17-2-3"><span class="section-number-4">17.2.3</span> Catalog Zone: named.conf:Secondary</h4>
+<div class="outline-text-4" id="text-17-2-3">
+<ul class="org-ul">
+<li>Configuration for catalog zones is found on secondaries.
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/1002-catalog-zone.png" class="img-responsive" alt="1002-catalog-zone.png">
+</p>
+</figure>
+</div>
+</div>
+
+<div id="outline-container-sec-17-2-4" class="outline-4">
+<h4 id="sec-17-2-4"><span class="section-number-4">17.2.4</span> Provisioned Member Zone</h4>
+<div class="outline-text-4" id="text-17-2-4">
+<ul class="org-ul">
+<li>The zone file for a member zone is created as normal on the
+primary, just as is done with any zone (not shown). It is added to
+<code>named.conf</code> just like any other zone
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/1003-catalog-zone.png" class="img-responsive" alt="1003-catalog-zone.png">
+</p>
+</figure>
+</div>
+</div>
+
+<div id="outline-container-sec-17-2-5" class="outline-4">
+<h4 id="sec-17-2-5"><span class="section-number-4">17.2.5</span> Registering a new zone in the catalog</h4>
+<div class="outline-text-4" id="text-17-2-5">
+<ul class="org-ul">
+<li>The new zone needs to be registered in the catalog zone
+</li>
+<li>Registration happens with a <code>PTR</code> (Pointer) record where the data
+part of that record is the zone name (<code>newzone.example.com</code> in
+this example)
+<ul class="org-ul">
+<li>The domain name of the record must be a unique name (for example
+the SHA1 hash of the new zone's name), the label <code>zones</code> and the
+domain name of the catalog zone
+(<code>zone2021111701.zones.catz.dnslab.org.</code> in the example)
+</li>
+</ul>
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/1004-catalog-zone.png" class="img-responsive" alt="1004-catalog-zone.png">
+</p>
+</figure>
+</div>
+</div>
+<div id="outline-container-sec-17-2-6" class="outline-4">
+<h4 id="sec-17-2-6"><span class="section-number-4">17.2.6</span> Provisioning Success</h4>
+<div class="outline-text-4" id="text-17-2-6">
+<ul class="org-ul">
+<li>The secondary automatically serves the new member zone.
+</li>
+<li>Updates to the member zone will automatically be transferred to the secondary.
+<ul class="org-ul">
+<li>This is with normal methods (<code>NOTIFY</code>, <code>IXFR</code>, etc).
+</li>
+</ul>
+</li>
+<li>Additional zones added to the catalog zone will also be
+automatically provisioned on the secondaries.
+</li>
+<li>A zone removed from the catalog zone will be removed by the
+secondaries.
+<ul class="org-ul">
+<li>A zone backup file on a secondary will be deleted.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-17-2-7" class="outline-4">
+<h4 id="sec-17-2-7"><span class="section-number-4">17.2.7</span> Additional zone block configuration</h4>
+<div class="outline-text-4" id="text-17-2-7">
+<ul class="org-ul">
+<li>Catalog zones can contain configuration information for the new
+zone block (like Access Control Lists, list of <code>primaries</code>
+etc.
+</li>
+<li>Options can be specified global for the whole catalog zone, or
+specific for each zone listed in the catalog zone etc.
+</li>
+<li>Details in the BIND Administration Reference Manual:
+<a href="https://downloads.isc.org/isc/bind9/9.16.16/doc/arm/html/advanced.html#catalog-zones">https://downloads.isc.org/isc/bind9/9.16.16/doc/arm/html/advanced.html#catalog-zones</a>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-sec-17-2-8" class="outline-4">
+<h4 id="sec-17-2-8"><span class="section-number-4">17.2.8</span> Available catalog zone options in BIND 9.16.x</h4>
+<div class="outline-text-4" id="text-17-2-8">
+<ul class="org-ul">
+<li><code>primaries</code>: this option sets one or more primary DNS servers for
+the secondary zone. Primaries can be defined as IPv4 A or IPv6 AAAA
+records.
+</li>
+<li><code>allow-query</code>: this option defines the <code>allow-query</code> ACL. The ACLs
+are defined with the help of the <code>APL</code> Resource record (see <a href="https://datatracker.ietf.org/doc/html/rfc3123.html">RFC
+3123 "A DNS RR Type for Lists of Address Prefixes (APL RR)"</a>
+</li>
+<li><code>allow-transfer</code>: this option defines the <code>allow-transfer</code> ACL. It
+also uses the APL record.
+</li>
+</ul>
+
+
+<figure>
+<p><img src="./img/1005-catalog-zone.png" class="img-responsive" alt="1005-catalog-zone.png">
+</p>
+</figure>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-17-3" class="outline-3">
+<h3 id="sec-17-3"><span class="section-number-3">17.3</span> Exercise</h3>
+<div class="outline-text-3" id="text-17-3">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li><b>Primary</b>
+<ul class="org-ul">
+<li>Work on the primary authoritative server (<code>nsNNa</code>).
+</li>
+<li>Write a zone file in the home directory of the BIND 9 server for a
+catalog zone (one SOA record, two NS records). The name of the
+catalog zone should be <code>dnscatalog.zoneNN.dnslab.org</code>. We are using
+a name from our own name space for the zone name to prevent clashes
+with existing zones in the Internet.
+</li>
+<li>Add a zone statement for the catalog zone to the <code>named.conf</code> on
+the authoritative primary server
+</li>
+<li>Check the configuration and reload the server
+</li>
+</ul>
+</li>
+<li><b>Secondary</b>
+<ul class="org-ul">
+<li>Switch to the secondary server
+</li>
+<li>Add the catalog zone as a secondary zone to the secondary server, use
+<code>masterfile-format text;</code> in the zone block of the secondary zone.
+</li>
+<li>Register the new zone <code>dnscatalog.zoneNN.dnslab.org</code> as a catalog
+zone in the secondary server <code>options</code> block
+<pre class="example">
+ options {
+   [...]
+   allow-new-zones yes;
+   catalog-zones {
+      zone "dnscatalog.zoneNN.dnslab.org" in-memory yes
+      default-masters { &lt;IPv4-address of your primary server&gt;; };
+   };
+};
+</pre>
+</li>
+</ul>
+<ul class="org-ul">
+<li>Check the configuration and reload the secondary server
+make sure the catalog zone is transferred over to the new primary
+</li>
+<li>(check for the zone file and log entries in <code>transfer.log</code>)
+</li>
+</ul>
+</li>
+<li><b>Primary</b>
+<ul class="org-ul">
+<li>On the primary server, register the reverse zone
+<code>1.168.192.in-addr.arpa</code> in the catalog zone
+</li>
+<li>Don't forget to increment the SOA serial number in the catalog zone
+</li>
+<li>Check the configuration and reload the server
+</li>
+</ul>
+</li>
+<li><b>Secondary</b>
+<ul class="org-ul">
+<li>Check that the new catalog zone version is transferred over to the
+secondary server
+</li>
+<li>Check that the reverse zone is created on the secondary
+</li>
+<li>Check the file <code>transfer.log</code> on the primary or on the secondary
+for a zone transfer of both the catalog zone and the reverse zone
+</li>
+</ul>
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
 </div>
 </div></div></div>
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-31 Thu 14:45</p>
+<p class="date">Created: 2024-10-31 Thu 15:11</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
