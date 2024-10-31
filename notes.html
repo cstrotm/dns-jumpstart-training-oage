@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-31 Thu 19:24 -->
+<!-- 2024-10-31 Thu 20:06 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -235,6 +235,8 @@ $(function() {
 <li><a href="#sec-22-11">22.11. QNAME minimization test</a></li>
 </ul>
 </li>
+<li><a href="#sec-23">23. Rebind protection</a></li>
+<li><a href="#sec-24">24. Stub zone</a></li>
 </ul>
 </div>
 </nav>
@@ -8110,11 +8112,230 @@ changed to <code>strict</code> in a future release.
 </div>
 </div>
 </div>
+
+<div id="outline-container-sec-23" class="outline-2">
+<h2 id="sec-23"><span class="section-number-2">23</span> Rebind protection</h2>
+<div class="outline-text-2" id="text-23">
+<ul class="org-ul">
+<li>Authoritative DNS Servers in the Internet should not return private
+IPv4 (RFC 1918) or private IPv6 Addresses (link-local, local multicast or unique-local addresses)
+<ul class="org-ul">
+<li>But some malicious DNS server do
+</li>
+<li>With the help of JavaScript (or other active components inside
+webpages) this enables an attacker to circumvent the security
+barriers of web-browser to access local machines
+<ul class="org-ul">
+<li>This <i>Rebind Attack</i> is also used by some popular websites such
+as eBay: <i>eBay port scans visitors' computers for remote access
+programs</i> <a href="https://www.bleepingcomputer.com/news/security/ebay-port-scans-visitors-computers-for-remote-access-programs/">https://www.bleepingcomputer.com/news/security/ebay-port-scans-visitors-computers-for-remote-access-programs/</a>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+<p>
+<img id="Rebind-Attack" class="img-responsive" src="img/Rebind-Attack-00.png"></ p><input type="button" onclick="NextPage('Rebind-Attack','6')" value=">" /><input type="button" onclick="ResetSlides('Rebind-Attack')" value="O" /><input type="button" onclick="PrevPage('Rebind-Attack')" value="<" />
+</p>
+<ul class="org-ul">
+<li>See <i>Protecting browsers from dns rebinding attacks</i>
+<a href="https://dl.acm.org/doi/10.1145/1315245.1315298">https://dl.acm.org/doi/10.1145/1315245.1315298</a>
+</li>
+<li>BIND 9 supports rebind protection since Version 9.7.0.
+</li>
+<li>The option <code>deny-answer-addresses</code> lists the address ranges that
+are considered <i>private</i> and should <b>not</b> be returned as part of an
+A/AAAA response, except for the zones listed in <code>except-from</code>:
+</li>
+</ul>
+<pre class="example">
+options {
+ [...]
+ deny-answer-addresses {
+    10.0.0.0/8;        // RFC 1918
+    172.16.0.0/12;     // RFC 1918
+    192.168.0.0/16;    // RFC 1918
+    127.0.0.0/8;       // Loopback IPv4 (careful!)
+    ::1/128;           // Loopback IPv6 (careful!)
+    fe80::/10;         // IPv6 Link-Local
+    fc00::/7;          // IPv6 Unique-Local
+   }
+   except-from {
+     "example.com";
+     "internal.example.net";
+     "mylocalnet.example";
+   };
+};
+</pre>
+<ul class="org-ul">
+<li>Care should be particularly taken if using this option for
+addresses within 127.0.0.0/8. These addresses are obviously
+"internal", but many applications conventionally rely on a DNS
+mapping from some name to such an address. Filtering out DNS
+records containing this address spuriously can break such
+applications.
+</li>
+</ul>
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Work on the authoritative DNS server <code>nsNNa</code>
+</li>
+<li>Add a new address record for the name
+<code>rebind-attack.zoneNN.dnslab.org.</code> to your zonefile. Use an
+IP-Address from the RFC 1918 private range
+</li>
+<li>Increment the SOA serial, run a syntax check on the zone, then
+reload the zone <code>rndc reload zoneNN.dnslab.org</code>
+</li>
+<li>Check that the change is propagating to all secondary DNS servers
+</li>
+<li>Switch to the resolver server <code>dnsrNN.dnslab.org</code>
+</li>
+<li>Implement the rebind-protection in the DNS resolver configuration
+</li>
+<li>Try to resolve the name <code>rebind-attack.zoneNN.dnslab.org.</code> on the DNS
+resolver. Rebind-Protection is not applied to queries originating
+from any of the loopback addresses. You need to send the query to
+one of the real IP addresses of the DNS resolver.
+<ul class="org-ul">
+<li>What error code/status do you seen? Write the answer in the chat.
+</li>
+</ul>
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
+
+<div id="outline-container-sec-24" class="outline-2">
+<h2 id="sec-24"><span class="section-number-2">24</span> Stub zone</h2>
+<div class="outline-text-2" id="text-24">
+<ul class="org-ul">
+<li>A stub zone short-circuits normal recursion by going directly to an
+authoritative server for the zone.
+</li>
+<li>The authoritative servers are specified in the
+configuration, and should match the zone's NS RRs.
+</li>
+<li>Authoritative servers are used only to retrieve the actual NS RRs, and glue RRs,
+if necessary.
+</li>
+<li>The actual NSs are then used for resolution.
+</li>
+<li>When the NS RRSet's TTL expires, the NS RRSet is pulled again.
+<ul class="org-ul">
+<li>This keeps the resolvers' information for the zone up to date.
+</li>
+</ul>
+</li>
+<li>Stub zones keep normal name resolution intact, and are less likely
+to fail when NS names or their addresses change.
+</li>
+<li>A stub zone is similar to a hint zone, but a hint zone is limited
+to reaching the root zone's authoritative servers.
+</li>
+<li>A stub zone is similar to a secondary zone, except it replicates only
+the NS RRs, not the entire zone.
+</li>
+</ul>
+
+<p>
+<img id="Stub-Zone" class="img-responsive" src="img/Stub-Zone-00.png"></ p><input type="button" onclick="NextPage('Stub-Zone','18')" value=">" /><input type="button" onclick="ResetSlides('Stub-Zone')" value="O" /><input type="button" onclick="PrevPage('Stub-Zone')" value="<" />
+</p>
+</div>
+
+<div id="outline-container-sec-24-0-1" class="outline-4">
+<h4 id="sec-24-0-1"><span class="section-number-4">24.0.1</span> An example stub zone configuration</h4>
+<div class="outline-text-4" id="text-24-0-1">
+<ul class="org-ul">
+<li>stub zones are configured in the <code>named.conf</code> of an DNS resolver
+</li>
+<li>the backup file is optional and will be created
+</li>
+</ul>
+<pre class="example">
+zone "private.dns.zone.example" {
+  type stub;
+  primaries { &lt;ip-addresses-of-primaries&gt;; };
+  file "private.dns.zone.example.stubzone";
+};
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-24-0-2" class="outline-4">
+<h4 id="sec-24-0-2"><span class="section-number-4">24.0.2</span> Exercise</h4>
+<div class="outline-text-4" id="text-24-0-2">
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Work on the DNS resolver machine <code>dnsrNN</code>
+</li>
+<li>Our reverse zone <code>1.168.192.in-addr.arpa</code> is currently not
+reachable from the DNS resolver
+<ul class="org-ul">
+<li>Because it is not delegated from the root DNS zone down
+</li>
+</ul>
+</li>
+<li>Add a stub zone for the reverse zone we've created on the
+authoritative servers
+</li>
+</ul>
+<pre class="example">
+zone "1.168.192.in-addr.arpa" {
+  type stub;
+  primaries { &lt;ip-addresses-of-authoritative-server&gt;; }; // address of nsNNa and nsNNb
+  file "1.168.192.in-addr.arpa.stubzone";
+};
+</pre>
+<ul class="org-ul">
+<li>Check and reload the configuration
+</li>
+<li>Check that the backup file of the stub-zone is created
+</li>
+</ul>
+<pre class="example">
+% cat /var/named/1.168.192.in-addr.arpa.stubzone
+$ORIGIN .
+$TTL 60	; 1 minute
+1.168.192.in-addr.arpa	IN SOA	nsNNa.dnslab.org. . (
+				1001       ; serial
+				3600       ; refresh (1 hour)
+				1800       ; retry (30 minutes)
+				3456000    ; expire (5 weeks 5 days)
+				60         ; minimum (1 minute)
+				)
+			NS	nsNNa.dnslab.org.
+			NS	nsNNb.dnslab.org.
+</pre>
+<ul class="org-ul">
+<li>You should now be able to directly resolve IP addresses to names on
+the DNS resolver (and all clients of that resolve can do that as
+well)
+</li>
+</ul>
+<pre class="example">
+$ dig @localhost -x 192.168.1.20
+</pre>
+
+<p>
+</div>
+</p>
+</div>
+</div>
+</div>
 </div></div></div>
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-31 Thu 19:24</p>
+<p class="date">Created: 2024-10-31 Thu 20:06</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
