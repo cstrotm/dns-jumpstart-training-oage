@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-31 Thu 09:56 -->
+<!-- 2024-10-31 Thu 14:41 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -162,6 +162,7 @@ $(function() {
 <li><a href="#sec-15-14">15.14. Solution: Dynamic update exercise</a></li>
 </ul>
 </li>
+<li><a href="#sec-16">16. Adding &amp; Removing Zones with RNDC</a></li>
 </ul>
 </div>
 </nav>
@@ -6056,11 +6057,143 @@ nsupdate&gt; quit
 </div>
 </div>
 </div>
+
+<div id="outline-container-sec-16" class="outline-2">
+<h2 id="sec-16"><span class="section-number-2">16</span> Adding &amp; Removing Zones with RNDC</h2>
+<div class="outline-text-2" id="text-16">
+<ul class="org-ul">
+<li>BIND 9.7.2-P2 introduced the capability to add and remove zones with rndc.
+<ul class="org-ul">
+<li><code>named.conf</code> is not modified.
+</li>
+<li>It is aimed at TLDs or providers authoritative for a large number of zones.
+</li>
+<li>It only changes one server.
+</li>
+<li>It works for both primary zone and secondary zones (but it is
+more practical for secondaries)
+</li>
+</ul>
+</li>
+<li>The feature must be enabled in <code>named.conf</code>.
+</li>
+</ul>
+<pre class="example">
+ options {
+   [...]
+   allow-new-zones yes;
+   [...]
+};
+</pre>
+<ul class="org-ul">
+<li><code>rndc addzone</code> adds a zone.
+<ul class="org-ul">
+<li>If the zone type is <code>primary</code>, the zone file must exist or the
+command fails.
+</li>
+<li>Zone shortcuts allow a single generic file to be used for
+multiple zones:
+<pre class="example">
+% rndc addzone example.net '{type primary; file "generic.db";};'
+</pre>
+</li>
+</ul>
+</li>
+<li>An example generic zone file:
+</li>
+</ul>
+<pre class="example">
+; generic zone file
+$TTL 1d
+@       IN SOA dns-master.example.com.  hostmaster  (
+                           2018103001  1d 2h 41d 1h )
+        IN NS  dns-master.example.com.
+        IN NS  dns2.example.com.
+        IN NS  dns3.example.com.
+        IN A    192.0.2.100
+www     IN CNAME @
+</pre>
+<ul class="org-ul">
+<li><code>rndc delzone</code> removes a zone.
+<ul class="org-ul">
+<li>If the zone was added via <code>rndc addzone</code>, it is removed permanently.
+</li>
+<li>If it was created in <code>named.conf</code>, when the server is restarted
+or reconfigured, the zone will come back!
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+% rndc delzone  example.net
+</pre>
+<ul class="org-ul">
+<li>A zone added with <code>rndc addzone</code> does not appear in <code>named.conf</code>.
+(<code>named.conf</code> is not modified.)
+<ul class="org-ul">
+<li>Plain text files ending in <code>.nzf</code> in the working directory
+contains added zones. (If <code>named</code> is compiled with liblmdb,
+in an LMDB database file called <code>viewname.nzd</code> which can be
+converted to <code>.nzf</code> with <code>named-nzd2nzf</code>.)
+<pre class="example">
+% dnf remove bind-utils
+% dnf install bind9.16-utils
+</pre>
+</li>
+<li>It is read when named starts or is reloaded.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+% cat 3bf305731dd26307.nzf
+zone example.net {type primary; file "hosts/primaries/generic-zone"; allow-update {any;};};
+zone example.org {type primary; file "hosts/primaries/generic-zone"; allow-update {any;};};
+</pre>
+<ul class="org-ul">
+<li>The <code>.nzf</code> filename is a hash of the view's name.
+<ul class="org-ul">
+<li>There is a separate file for each view.
+</li>
+<li>Without defined views, there is an <code>.nzf</code> for: <code>_default</code>
+</li>
+</ul>
+</li>
+</ul>
+<p>
+<div class="exercise">
+</p>
+<ul class="org-ul">
+<li>Work on the authoritative DNS server <code>nsNNa</code>
+</li>
+<li>Create a minimal zone file for a domain <code>myname.org</code>
+and verify that the zone file is syntactically correct using
+<code>named-checkzone</code>. Load the zone into the primary server.
+</li>
+<li>Work on the secondary DNS server <code>nsNNb</code>
+</li>
+<li>Configure your secondary server <code>nsNNb</code> to allow adding zones on the fly
+</li>
+<li>Add your <code>myname.org</code> zone as secondary to the running server
+</li>
+<li>Optional: if rndc is configured to listen on a public address secured
+with TSIG, add the zone to the secondary from the primary.
+</li>
+<li>In your secondary server's <code>directory</code> (check <code>named.conf</code>) you'll find
+a file <code>*.nzf</code>. What does it contain?
+Write answers in the chat.
+</li>
+</ul>
+<p>
+</div>
+</p>
+</div>
+</div>
 </div></div></div>
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-31 Thu 09:56</p>
+<p class="date">Created: 2024-10-31 Thu 14:41</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
