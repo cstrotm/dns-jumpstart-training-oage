@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-31 Thu 08:35 -->
+<!-- 2024-10-31 Thu 09:56 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -3054,7 +3054,7 @@ more accurately reproduce the behavior of named when resolving a
 query. In this mode, delv uses an internal recursive resolver
 rather than an external server. All messages sent and received
 during the resolution and validation process are logged. This can
-be used in place of dig +trace. 
+be used in place of dig +trace.
 <pre class="example">
 % delv +ns dnssec.works | less
 </pre>
@@ -4996,7 +4996,7 @@ the secondary server
 <pre class="example">
 zone "zoneNN.dnslab.org" {
   type secondary;
-  primaries { &lt;ipv6-address-of-primary&gt; key &lt;name-of-tsig-key&gt;; 
+  primaries { &lt;ipv6-address-of-primary&gt; key &lt;name-of-tsig-key&gt;;
               &lt;ipv4-address-of-primary&gt; key &lt;name-of-tsig-key&gt;; };
   file "zoneNN.dnslab.org";
 };
@@ -5715,10 +5715,10 @@ serial number.
 <h4 id="sec-15-11-1"><span class="section-number-4">15.11.1</span> QUIZ:</h4>
 <div class="outline-text-4" id="text-15-11-1">
 <p>
-<div class="exercise"> 
+<div class="exercise">
 What do you think happens if the server receives
 an IXFR request and doesn't know the changes?  Write the answer in the
-chat.  
+chat.
 </div>
 </p>
 </div>
@@ -6037,7 +6037,7 @@ nsupdate&gt; quit
 </li>
 </ul>
 <pre class="example">
-nsupdate&gt; del info.dynamic.zoneNN.dnslab.org TXT 
+nsupdate&gt; del info.dynamic.zoneNN.dnslab.org TXT
 nsupdate&gt; send
 nsupdate&gt; quit
 </pre>
@@ -6060,7 +6060,7 @@ nsupdate&gt; quit
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-31 Thu 08:35</p>
+<p class="date">Created: 2024-10-31 Thu 09:56</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
