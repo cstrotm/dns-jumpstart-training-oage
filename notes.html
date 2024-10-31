@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-31 Thu 15:11 -->
+<!-- 2024-10-31 Thu 15:53 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -172,6 +172,7 @@ $(function() {
 <li><a href="#sec-17-1">17.1. Provisioning New Zones</a></li>
 <li><a href="#sec-17-2">17.2. Catalog Zone</a></li>
 <li><a href="#sec-17-3">17.3. Exercise</a></li>
+<li><a href="#sec-17-4">17.4. Solution</a></li>
 </ul>
 </li>
 </ul>
@@ -6570,12 +6571,94 @@ for a zone transfer of both the catalog zone and the reverse zone
 </p>
 </div>
 </div>
+<div id="outline-container-sec-17-4" class="outline-3">
+<h3 id="sec-17-4"><span class="section-number-3">17.4</span> Solution</h3>
+<div class="outline-text-3" id="text-17-4">
+<ul class="org-ul">
+<li>Catalog zone without any registered zones (on the primary)
+</li>
+</ul>
+<pre class="example">
+$TTL 60
+$ORIGIN dnscatalog.zoneNN.dnslab.org.
+
+@       IN SOA nsNNa.dnslab.org.  . 1001 2h 1h 40d 60
+        IN NS  nsNNa.dnslab.org.
+        IN NS  nsNNb.dnslab.org.
+version IN TXT "2"
+</pre>
+<ul class="org-ul">
+<li>Zone statement on the primary
+</li>
+</ul>
+<pre class="example">
+zone "dnscatalog.zoneNN.dnslab.org" {
+     type primary;
+     file "dnscatalog.zoneNN.dnslab.org";
+     allow-transfer { key zoneNN-xfr; };
+};
+</pre>
+<ul class="org-ul">
+<li>Option block on the secondary server
+</li>
+</ul>
+<pre class="example">
+allow-new-zones yes;
+catalog-zones {
+   zone "dnscatalog.zoneNN.dnslab.org" in-memory yes
+   default-primaries { &lt;IPv4-address of your primary server&gt; key &lt;TSIG-key&gt;; };
+};
+</pre>
+<ul class="org-ul">
+<li>Zone block on the secondary server
+</li>
+</ul>
+<pre class="example">
+zone "dnscatalog.zoneNN.dnslab.org" {
+  type secondary;
+  primaries { &lt;ip-of-primary-server&gt;; };
+  file "dnscatalog.zoneNN.dnslab.org";
+};
+</pre>
+<ul class="org-ul">
+<li>Catalog zone <b>with</b> registered (reverse) zone
+</li>
+</ul>
+<pre class="example">
+$TTL 60
+$ORIGIN dnscatalog.zoneNN.dnslab.org.
+
+@       IN SOA nsNNa.dnslab.org.  . 1002 2h 1h 40d 60
+        IN NS  nsNNa.dnslab.org.
+        IN NS  nsNNb.dnslab.org.
+version IN TXT "2"
+
+102b71e76d753b9c6bdb7d3b570d0dcd439f41c2.zones  IN PTR     1.168.192.in-addr.arpa.
+</pre>
+<ul class="org-ul">
+<li>Expected log entries on the secondary server in <code>transfer.log</code>
+</li>
+</ul>
+<pre class="example">
+27-May-2020 08:51:10.453 transfer of 'dnscatalog.zoneNN.dnslab.org/IN' from 161.35.224.95#53: connected using 161.35.168.43#38981
+27-May-2020 08:51:10.584 zone dnscatalog.zoneNN.dnslab.org/IN: transferred serial 1002
+27-May-2020 08:51:10.584 transfer of 'dnscatalog.zoneNN.dnslab.org/IN' from 161.35.224.95#53: Transfer status: success
+27-May-2020 08:51:10.584 transfer of 'dnscatalog.zoneNN.dnslab.org/IN' from 161.35.224.95#53: Transfer completed: 1 messages, 5 records, 271 bytes, 0.131 secs (2068 bytes/sec)
+27-May-2020 08:51:10.585 zone dnscatalog.zoneNN.dnslab.org/IN: sending notifies (serial 1002)
+27-May-2020 08:51:10.820 zone 1.168.192.in-addr.arpa/IN: Transfer started.
+27-May-2020 08:51:10.950 transfer of '1.168.192.in-addr.arpa/IN' from 161.35.224.95#53: connected using 161.35.168.43#43967
+27-May-2020 08:51:11.081 zone 1.168.192.in-addr.arpa/IN: transferred serial 1001
+27-May-2020 08:51:11.081 transfer of '1.168.192.in-addr.arpa/IN' from 161.35.224.95#53: Transfer status: success
+27-May-2020 08:51:11.081 transfer of '1.168.192.in-addr.arpa/IN' from 161.35.224.95#53: Transfer completed: 1 messages, 7 records, 246 bytes, 0.131 secs (1877 bytes/sec)
+</pre>
+</div>
+</div>
 </div>
 </div></div></div>
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-31 Thu 15:11</p>
+<p class="date">Created: 2024-10-31 Thu 15:53</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
