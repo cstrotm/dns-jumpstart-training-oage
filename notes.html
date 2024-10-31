@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <title>DNS &amp; BIND 9 Leap-Ahead Online Training</title>
-<!-- 2024-10-31 Thu 15:53 -->
+<!-- 2024-10-31 Thu 17:53 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="Org-mode">
@@ -173,6 +173,26 @@ $(function() {
 <li><a href="#sec-17-2">17.2. Catalog Zone</a></li>
 <li><a href="#sec-17-3">17.3. Exercise</a></li>
 <li><a href="#sec-17-4">17.4. Solution</a></li>
+</ul>
+</li>
+<li><a href="#sec-18">18. DNAME / HTTPS / SVCB records</a>
+<ul class="nav">
+<li><a href="#sec-18-1">18.1. The DNAME record</a></li>
+<li><a href="#sec-18-2">18.2. DNAME Rules</a></li>
+<li><a href="#sec-18-3">18.3. Quiz Question</a></li>
+<li><a href="#sec-18-4">18.4. The HTTPS/SVCB Records</a></li>
+</ul>
+</li>
+<li><a href="#sec-19">19. Response Rate Limiting in BIND</a>
+<ul class="nav">
+<li><a href="#sec-19-1">19.1. named RRL options {}</a></li>
+<li><a href="#sec-19-2">19.2. RRL: responses-per-second</a></li>
+<li><a href="#sec-19-3">19.3. RRL: log-only</a></li>
+<li><a href="#sec-19-4">19.4. RRL: slip</a></li>
+<li><a href="#sec-19-5">19.5. RRL: ipv[46]-prefix-length</a></li>
+<li><a href="#sec-19-6">19.6. RRL: all-per-second</a></li>
+<li><a href="#sec-19-7">19.7. RRL: window</a></li>
+<li><a href="#sec-19-8">19.8. RRL: logging</a></li>
 </ul>
 </li>
 </ul>
@@ -6654,11 +6674,543 @@ version IN TXT "2"
 </div>
 </div>
 </div>
+
+<div id="outline-container-sec-18" class="outline-2">
+<h2 id="sec-18"><span class="section-number-2">18</span> DNAME / HTTPS / SVCB records</h2>
+<div class="outline-text-2" id="text-18">
+</div><div id="outline-container-sec-18-1" class="outline-3">
+<h3 id="sec-18-1"><span class="section-number-3">18.1</span> The DNAME record</h3>
+<div class="outline-text-3" id="text-18-1">
+<ul class="org-ul">
+<li><code>DNAME</code> RRs have similarities to <code>CNAME</code> RRs.
+<ul class="org-ul">
+<li>A <code>CNAME</code> redirects one domain name to another.
+</li>
+</ul>
+</li>
+<li>A <code>DNAME</code> provides redirection of an entire subtree.
+<ul class="org-ul">
+<li>All names that end with a suffix are redirected.
+</li>
+<li>The domain name itself is not redirected!
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+new-company-name.com. 30 IN DNAME old-company-name.ch.
+</pre>
+<ul class="org-ul">
+<li>The example below would be found in the <code>com</code> zone.
+<pre class="example">
+company-name.com. 30 IN DNAME company-name.ch.
+</pre>
+</li>
+<li>The target is substituted for the owner.
+</li>
+<li>A query of any RTYPE for: <code>some-name.company-name.com</code> results in
+another query of the same RTYPE for: <code>some-name.company-name.ch</code>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-18-2" class="outline-3">
+<h3 id="sec-18-2"><span class="section-number-3">18.2</span> DNAME Rules</h3>
+<div class="outline-text-3" id="text-18-2">
+<ul class="org-ul">
+<li>Decedents of a <code>DNAME</code> are not allowed in a zone.
+</li>
+</ul>
+<pre class="example">
+subzone.example.invalid.   30 IN DNAME example.net.
+x.subzone.example.invalid. 30 IN A     192.0.2.1
+</pre>
+<ul class="org-ul">
+<li>Other RRs with a different type are allowed.
+</li>
+</ul>
+<pre class="example">
+subzone.example.com.   30 IN DNAME example.net.
+subzone.example.com.   30 IN A     192.0.2.1
+subzone.example.com.   30 IN TXT   "No problem."
+</pre>
+<ul class="org-ul">
+<li>A <code>DNAME</code> cannot coexist with another <code>DNAME</code> or <code>CNAME</code>.
+</li>
+</ul>
+<pre class="example">
+subzone.example.invalid.   30 IN DNAME example.net.
+subzone.example.invalid.   30 IN DNAME example.org.
+</pre>
+<ul class="org-ul">
+<li><a href="https://tools.ietf.org/html/rfc6672">RFC 6672</a>: "The use of DNAME in conjunction with wildcards is discouraged."
+<ul class="org-ul">
+<li>It advises the following <b>SHOULD NOT</b> be used:
+<pre class="example">
+*.example.com. 30 IN DNAME example.net.
+</pre>
+</li>
+</ul>
+</li>
+<li>Like with CNAMEs, loops are a risk and DNAMEs should be avoided in
+the RDATA.
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-18-3" class="outline-3">
+<h3 id="sec-18-3"><span class="section-number-3">18.3</span> Quiz Question</h3>
+<div class="outline-text-3" id="text-18-3">
+<p>
+<div class="exercise">
+</p>
+
+<p>
+Below is a RRSet with multiple RRs. List three common RR types
+that cannot have multiple RRs in a RRSet? Write your solution to the
+chat.
+</p>
+
+<pre class="example">
+www.example.com. 30 IN A 192.0.2.1
+www.example.com. 30    A 200.200.200.200
+                 30    A 10.10.10.10
+</pre>
+<p>
+</div>
+</p>
+</div>
+</div>
+<div id="outline-container-sec-18-4" class="outline-3">
+<h3 id="sec-18-4"><span class="section-number-3">18.4</span> The HTTPS/SVCB Records</h3>
+<div class="outline-text-3" id="text-18-4">
+<ul class="org-ul">
+<li>The new <code>SVCB</code> (Type 64) and <code>HTTPS</code> (Type 65) record types provide
+information needed to make connections to network services, such
+as for HTTPS origins
+<ul class="org-ul">
+<li>The records are discussed in RFC 9460 "Service binding
+and parameter specification via the DNS (DNS SVCB and HTTPS
+RRs)" <a href="https://datatracker.ietf.org/doc/html/rfc9460">https://datatracker.ietf.org/doc/html/rfc9460</a>
+</li>
+<li><code>SVCB</code> is the generic form, while <code>HTTPS</code> is a specialized version
+for HTTPS/HTTP connections
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-18-4-1" class="outline-4">
+<h4 id="sec-18-4-1"><span class="section-number-4">18.4.1</span> Benefits of the HTTPS/SVCB records</h4>
+<div class="outline-text-4" id="text-18-4-1">
+<ul class="org-ul">
+<li>These new records allow a service to be provided from multiple
+alternative servers, each with associated parameters
+<ul class="org-ul">
+<li>IPv6 and IPv4 address information
+</li>
+<li>Keys for encrypted client hello
+</li>
+<li>Information about the application protocol (e.g. HTTP/1.1,
+HTTP/2, HTTP/3-QUIC)
+</li>
+<li>Information about the designated DNS-over-HTTPS resolver for a
+domain (Adaptive DoH Resolver Discovery)
+</li>
+</ul>
+</li>
+<li>They also enable aliasing of domains from within the zone (and not
+from the parent), which is not possible with <code>CNAME</code> or <code>DNAME</code>
+</li>
+<li><code>SVCB</code> can be seen as an evolution of the older <code>SRV</code> record type
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-18-4-2" class="outline-4">
+<h4 id="sec-18-4-2"><span class="section-number-4">18.4.2</span> HTTPS/SVCB usage</h4>
+<div class="outline-text-4" id="text-18-4-2">
+<ul class="org-ul">
+<li>The new HTTPS/SVCB records are already deployed (since
+October 2020) in Apple iOS 14 and macOS 11 operating systems
+<ul class="org-ul">
+<li>The HTTPS resource record was the 3rd most requested record on
+an large ISP resolver in October 2020 (after A and AAAA record
+types)
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-18-4-3" class="outline-4">
+<h4 id="sec-18-4-3"><span class="section-number-4">18.4.3</span> Example SVCB/HTTPS Alias Mode</h4>
+<div class="outline-text-4" id="text-18-4-3">
+<ul class="org-ul">
+<li>SVCB in <i>Alias</i> mode (for service <code>ldap</code> on port <code>389</code>)
+<pre class="example">
+_389._ldap.example.com. 3600 IN SVCB 0 ldap-server.example.net.
+</pre>
+</li>
+<li>HTTPS in <i>Alias</i> mode
+<pre class="example">
+example.com. 3600 IN HTTPS 0 svc.example.net.
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-18-4-4" class="outline-4">
+<h4 id="sec-18-4-4"><span class="section-number-4">18.4.4</span> SVCB/HTTPS in Service Mode</h4>
+<div class="outline-text-4" id="text-18-4-4">
+<pre class="example">
+_port._service.ownername.   TTL  IN SVCB  &lt;prio&gt; &lt;target&gt; &lt;key1=value1&gt; &lt;keyN=valueN&gt;
+</pre>
+<ul class="org-ul">
+<li>The <code>prio</code> field works like the priority in SRV or MX records
+(lower value = higher priority)
+</li>
+<li>The <code>target</code> field specifies the hostname of the machine providing
+the service. The name <code>.</code> is a special value meaning "use the
+owner name of this record"
+</li>
+<li>Service Mode Parameter
+<ul class="org-ul">
+<li><code>mandatory</code> - Mandatory keys
+</li>
+<li><code>alpn</code> - Additional supported protocols
+</li>
+<li><code>no-default-alpn</code> - No support for default protocol
+</li>
+<li><code>port</code> - Port for alternative endpoint
+</li>
+<li><code>ipv6hint</code> - IPv6 address hints
+</li>
+<li><code>ipv4hint</code> - IPv4 address hints
+</li>
+<li><code>echconfig</code> - Encrypted client hello info (TLS)
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-18-4-5" class="outline-4">
+<h4 id="sec-18-4-5"><span class="section-number-4">18.4.5</span> Example SVCB/HTTPS Service Mode</h4>
+<div class="outline-text-4" id="text-18-4-5">
+<ul class="org-ul">
+<li>HTTPS in <i>Service</i> mode (first HTTPS in <i>Alias</i> mode)
+<pre class="example">
+example.com.      7200  IN HTTPS 0 svc.example.net.
+svc.example.net.  7200  IN CNAME svc2.example.net.
+svc2.example.net. 7200  IN HTTPS 1 . port=8002 echconfig="..."
+svc2.example.net. 300   IN A     192.0.2.2
+svc2.example.net. 300   IN AAAA  2001:db8::2
+</pre>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-18-4-6" class="outline-4">
+<h4 id="sec-18-4-6"><span class="section-number-4">18.4.6</span> Resources:</h4>
+<div class="outline-text-4" id="text-18-4-6">
+<ul class="org-ul">
+<li>A First Look at SVCB and HTTPS DNS Resource Records in the Wild
+<a href="https://www.net.in.tum.de/fileadmin/bibtex/publications/papers/zirngibl2023svcb.pdf">https://www.net.in.tum.de/fileadmin/bibtex/publications/papers/zirngibl2023svcb.pdf</a>
+</li>
+<li>Use of HTTPS resource records <a href="https://blog.apnic.net/2023/12/18/use-of-https-resource-records/">https://blog.apnic.net/2023/12/18/use-of-https-resource-records/</a>
+</li>
+<li>Deciphering the Digital Veil: Exploring the Ecosystem of DNS HTTPS
+Resource Records <a href="https://arxiv.org/pdf/2403.15672v1">https://arxiv.org/pdf/2403.15672v1</a>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-sec-19" class="outline-2">
+<h2 id="sec-19"><span class="section-number-2">19</span> Response Rate Limiting in BIND</h2>
+<div class="outline-text-2" id="text-19">
+<ul class="org-ul">
+<li>Response Rate Limiting (RRL) reduces query responses sent by a DNS server.
+<ul class="org-ul">
+<li>RRL is a defense against reflection/amplification DoS attacks
+</li>
+<li>Clients IPs are grouped into buckets. (e.g. 256 IPv4's)
+</li>
+<li>Identical <b>responses</b> to the same bucket are tracked.
+</li>
+<li>If identical responses go over a set rate, RRL kicks in.
+</li>
+<li>RRL significantly reduces the effect of using a domain name from
+a zone the server is authoritative for in a reflection attack.
+</li>
+<li>RRL is applicable to UDP queries, not those over TCP.
+</li>
+<li>The ISC recommends RRL only for authoritative servers.
+</li>
+</ul>
+</li>
+<li>A server drops or truncates when queries exceed its set rate.
+<ul class="org-ul">
+<li>A valid client will likely re-query in response to a drop.
+</li>
+<li>Truncation prevents amplification but not reflection.
+</li>
+<li>Legitimate clients will re-query with TCP and get a reply.
+</li>
+<li>A valid client is only negatively effected, if its query is
+identical to the attacks, and is in a bucket being spoofed.
+</li>
+<li><code>named</code>'s default is a mix of truncation and drop.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div id="outline-container-sec-19-1" class="outline-3">
+<h3 id="sec-19-1"><span class="section-number-3">19.1</span> named RRL options {}</h3>
+<div class="outline-text-3" id="text-19-1">
+<ul class="org-ul">
+<li>These are all the RRL option settings.
+</li>
+</ul>
+<pre class="example">
+options {
+  rate-limit {
+    all-per-second integer;
+    errors-per-second integer;
+    exempt-clients { address_match_element; ... };
+    ipv4-prefix-length integer;
+    ipv6-prefix-length integer;
+    log-only boolean;
+    max-table-size integer;
+    min-table-size integer;
+    nodata-per-second integer;
+    nxdomains-per-second integer;
+    qps-scale integer;
+    referrals-per-second integer;
+    responses-per-second integer;
+    slip integer;
+    window integer;
+  };
+};
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-19-2" class="outline-3">
+<h3 id="sec-19-2"><span class="section-number-3">19.2</span> RRL: responses-per-second</h3>
+<div class="outline-text-3" id="text-19-2">
+<ul class="org-ul">
+<li><code>rate-limit</code> enables RRL.  Default=0 (disabled)
+</li>
+<li>A bucket will be limited to 10 identical responses before rate-limiting is enforced.
+<ul class="org-ul">
+<li>Beyond 10: 1 query dropped, 1 truncated. (See slip).
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+options {
+   rate-limit {
+     responses-per-second 10;
+   };
+   [...]
+};
+</pre>
+<ul class="org-ul">
+<li>This is a perfectly valid configuration.
+<ul class="org-ul">
+<li>All other RRL settings have their default values.
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-19-3" class="outline-3">
+<h3 id="sec-19-3"><span class="section-number-3">19.3</span> RRL: log-only</h3>
+<div class="outline-text-3" id="text-19-3">
+<ul class="org-ul">
+<li><code>log-only</code> disables RRL, but logs as if it were running.
+<ul class="org-ul">
+<li>Default=no
+</li>
+</ul>
+</li>
+<li>The option is recommended before enabling RRL.
+<ul class="org-ul">
+<li>Use it to determine a responses-per-second value that doesn't
+limit normal querying.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+rate-limit {
+     responses-per-second 10;
+     log-only yes;
+};
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-19-4" class="outline-3">
+<h3 id="sec-19-4"><span class="section-number-3">19.4</span> RRL: slip</h3>
+<div class="outline-text-3" id="text-19-4">
+<ul class="org-ul">
+<li>Slip sets if RLed queries are dropped or truncate.
+<ul class="org-ul">
+<li>It lets a legitimate IP get responses, even when it is being spoofed.
+<ul class="org-ul">
+<li>slip 0; drop all RLed queries. (Bad for legitimate clients.)
+</li>
+<li>slip 1; Answer all RLed queries with TC=1. (All slip.)
+</li>
+<li>slip 2; Slip every other query. (drop, truncate, drop,&#x2026;)
+</li>
+<li>slip 3; (drop, drop, truncate, drop, drop, truncate,&#x2026;)
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+rate-limit {
+      responses-per-second 10;
+       slip 2;
+};
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-19-5" class="outline-3">
+<h3 id="sec-19-5"><span class="section-number-3">19.5</span> RRL: ipv[46]-prefix-length</h3>
+<div class="outline-text-3" id="text-19-5">
+<ul class="org-ul">
+<li>Buckets of grouped IP addresses.
+<ul class="org-ul">
+<li>Smaller buckets with fewer IPs, allow finer RRL control, but require more memory.
+</li>
+<li><code>ipv4-prefix-length 32;</code> would require tracking of every client
+independently and need a lot of memory.
+</li>
+<li>The defaults of 24 and 56 reasonable.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+rate-limit {
+      responses-per-second 10;
+       ipv4-prefix-length 24;
+       ipv6-prefix-length 56;
+};
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-19-6" class="outline-3">
+<h3 id="sec-19-6"><span class="section-number-3">19.6</span> RRL: all-per-second</h3>
+<div class="outline-text-3" id="text-19-6">
+<ul class="org-ul">
+<li>Rate limit a bucket to an absolute number of UDP queries.
+<ul class="org-ul">
+<li>Any responses, not only identical ones.
+</li>
+<li>Slip is ignored. All queries over the limited are dropped.
+</li>
+<li>Use with caution, clients can send a lot of independent valid queries.
+</li>
+<li>The default is 0: disabled
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+rate-limit {
+  all-per-second 50;
+};
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-19-7" class="outline-3">
+<h3 id="sec-19-7"><span class="section-number-3">19.7</span> RRL: window</h3>
+<div class="outline-text-3" id="text-19-7">
+<ul class="org-ul">
+<li>Response tracking time-range, a rolling window.
+<ul class="org-ul">
+<li>Most importantly, it works as recovery time.
+</li>
+<li>How long after a tripped rate-limiter goes below its threshold,
+before rate-limiting stops limiting.
+</li>
+<li>The default, 15 seconds, is reasonable.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+rate-limit {
+      responses-per-second 10;
+      slip 3;
+      window 15;
+};
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-19-8" class="outline-3">
+<h3 id="sec-19-8"><span class="section-number-3">19.8</span> RRL: logging</h3>
+<div class="outline-text-3" id="text-19-8">
+<ul class="org-ul">
+<li>BIND has a <code>rate-limit</code> logging category.
+<ul class="org-ul">
+<li>The onset and end of rate-limiting are logged.
+</li>
+<li>Periodic messages are logged in between.
+</li>
+<li>The logging of rate-limiting ending is delayed ~60s.
+</li>
+<li>Logging is at severity info.
+</li>
+</ul>
+</li>
+</ul>
+<pre class="example">
+logging {
+  channel rrl { &lt;OUTPUT SUPPRESSED&gt;; };
+  &lt;OUTPUT SUPPRESSED&gt;;
+  category rate-limit { rrl; };
+ };
+</pre>
+<ul class="org-ul">
+<li>Sample log (formatted)
+</li>
+</ul>
+<pre class="example">
+29-Aug-2018 19:40:58.250 would limit responses to 192.168.53.0/24
+                         for zulu.zoneNN.dnslab.org IN A  (0e0b52d9)
+29-Aug-2018 19:40:58.250 client @0x7fb9a00c0010
+                         192.168.53.252#59979 (zulu.zoneNN.dnslab.org):
+                         would rate limit slip response to 192.168.53.0/24
+                         for zulu.zoneNN.dnslab.org IN A  (0e0b52d9)
+29-Aug-2018 19:40:58.258 client @0x7fb9a00c0010
+                         192.168.53.252#54990 (zulu.zoneNN.dnslab.org):
+                         would rate limit drop response to 192.168.53.0/24
+                         for zulu.zoneNN.dnslab.org IN A  (0e0b52d9)
+</pre>
+
+<p>
+<hr />
+</p>
+</div>
+</div>
+</div>
 </div></div></div>
 <footer id="postamble" class="">
 <div><p class="date">Date: <span class="timestamp-wrapper"><span class="timestamp">&lt;2024-10-28 Mon&gt;</span></span></p>
 <p class="author">Author: BlueCat Learning Team</p>
-<p class="date">Created: 2024-10-31 Thu 15:53</p>
+<p class="date">Created: 2024-10-31 Thu 17:53</p>
 <p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 29.4 (<a href="http://orgmode.org">Org-mode</a> 9.1.4)</p>
 </div>
 </footer>
